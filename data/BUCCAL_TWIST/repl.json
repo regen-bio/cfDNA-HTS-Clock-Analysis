@@ -1,0 +1,352 @@
+[
+	{
+		"replicates": [
+			"1_Rep1",
+			"1_Rep2"
+		],
+		"subject_id": "1"
+	},
+	{
+		"replicates": [
+			"2_Rep1",
+			"2_Rep2"
+		],
+		"subject_id": "2"
+	},
+	{
+		"replicates": [
+			"3_Rep1",
+			"3_Rep2"
+		],
+		"subject_id": "3"
+	},
+	{
+		"replicates": [
+			"4_Rep1",
+			"4_Rep2"
+		],
+		"subject_id": "4"
+	},
+	{
+		"replicates": [
+			"5_Rep1",
+			"5_Rep2"
+		],
+		"subject_id": "5"
+	},
+	{
+		"replicates": [
+			"6_Rep1",
+			"6_Rep2"
+		],
+		"subject_id": "6"
+	},
+	{
+		"replicates": [
+			"7_Rep1",
+			"7_Rep2"
+		],
+		"subject_id": "7"
+	},
+	{
+		"replicates": [
+			"8_Rep1",
+			"8_Rep2"
+		],
+		"subject_id": "8"
+	},
+	{
+		"replicates": [
+			"9_Rep1",
+			"9_Rep2"
+		],
+		"subject_id": "9"
+	},
+	{
+		"replicates": [
+			"10_Rep1",
+			"10_Rep2"
+		],
+		"subject_id": "10"
+	},
+	{
+		"replicates": [
+			"11_Rep1",
+			"11_Rep2"
+		],
+		"subject_id": "11"
+	},
+	{
+		"replicates": [
+			"12_Rep1",
+			"12_Rep2"
+		],
+		"subject_id": "12"
+	},
+	{
+		"replicates": [
+			"13_Rep1",
+			"13_Rep2"
+		],
+		"subject_id": "13"
+	},
+	{
+		"replicates": [
+			"14_Rep1",
+			"14_Rep2"
+		],
+		"subject_id": "14"
+	},
+	{
+		"replicates": [
+			"15_Rep1",
+			"15_Rep2"
+		],
+		"subject_id": "15"
+	},
+	{
+		"replicates": [
+			"16_Rep1",
+			"16_Rep2"
+		],
+		"subject_id": "16"
+	},
+	{
+		"replicates": [
+			"17_Rep1",
+			"17_Rep2"
+		],
+		"subject_id": "17"
+	},
+	{
+		"replicates": [
+			"18_Rep1",
+			"18_Rep2"
+		],
+		"subject_id": "18"
+	},
+	{
+		"replicates": [
+			"19_Rep1",
+			"19_Rep2"
+		],
+		"subject_id": "19"
+	},
+	{
+		"replicates": [
+			"20_Rep1",
+			"20_Rep2"
+		],
+		"subject_id": "20"
+	},
+	{
+		"replicates": [
+			"21_Rep1",
+			"21_Rep2"
+		],
+		"subject_id": "21"
+	},
+	{
+		"replicates": [
+			"22_Rep1",
+			"22_Rep2"
+		],
+		"subject_id": "22"
+	},
+	{
+		"replicates": [
+			"23_Rep1",
+			"23_Rep2"
+		],
+		"subject_id": "23"
+	},
+	{
+		"replicates": [
+			"24_Rep1",
+			"24_Rep2"
+		],
+		"subject_id": "24"
+	},
+	{
+		"replicates": [
+			"25_Rep1",
+			"25_Rep2"
+		],
+		"subject_id": "25"
+	},
+	{
+		"replicates": [
+			"26_Rep1",
+			"26_Rep2"
+		],
+		"subject_id": "26"
+	},
+	{
+		"replicates": [
+			"27_Rep1",
+			"27_Rep2"
+		],
+		"subject_id": "27"
+	},
+	{
+		"replicates": [
+			"28_Rep1",
+			"28_Rep2"
+		],
+		"subject_id": "28"
+	},
+	{
+		"replicates": [
+			"29_Rep1",
+			"29_Rep2"
+		],
+		"subject_id": "29"
+	},
+	{
+		"replicates": [
+			"30_Rep1",
+			"30_Rep2"
+		],
+		"subject_id": "30"
+	},
+	{
+		"replicates": [
+			"31_Rep1",
+			"31_Rep2"
+		],
+		"subject_id": "31"
+	},
+	{
+		"replicates": [
+			"32_Rep1",
+			"32_Rep2"
+		],
+		"subject_id": "32"
+	},
+	{
+		"replicates": [
+			"33_Rep1",
+			"33_Rep2"
+		],
+		"subject_id": "33"
+	},
+	{
+		"replicates": [
+			"34_Rep1",
+			"34_Rep2"
+		],
+		"subject_id": "34"
+	},
+	{
+		"replicates": [
+			"35_Rep1",
+			"35_Rep2"
+		],
+		"subject_id": "35"
+	},
+	{
+		"replicates": [
+			"36_Rep1",
+			"36_Rep2"
+		],
+		"subject_id": "36"
+	},
+	{
+		"replicates": [
+			"37_Rep1",
+			"37_Rep2"
+		],
+		"subject_id": "37"
+	},
+	{
+		"replicates": [
+			"38_Rep1",
+			"38_Rep2"
+		],
+		"subject_id": "38"
+	},
+	{
+		"replicates": [
+			"39_Rep1",
+			"39_Rep2"
+		],
+		"subject_id": "39"
+	},
+	{
+		"replicates": [
+			"40_Rep1",
+			"40_Rep2"
+		],
+		"subject_id": "40"
+	},
+	{
+		"replicates": [
+			"41_Rep1",
+			"41_Rep2"
+		],
+		"subject_id": "41"
+	},
+	{
+		"replicates": [
+			"42_Rep1",
+			"42_Rep2"
+		],
+		"subject_id": "42"
+	},
+	{
+		"replicates": [
+			"43_Rep1",
+			"43_Rep2"
+		],
+		"subject_id": "43"
+	},
+	{
+		"replicates": [
+			"44_Rep1",
+			"44_Rep2"
+		],
+		"subject_id": "44"
+	},
+	{
+		"replicates": [
+			"45_Rep1",
+			"45_Rep2"
+		],
+		"subject_id": "45"
+	},
+	{
+		"replicates": [
+			"46_Rep1",
+			"46_Rep2"
+		],
+		"subject_id": "46"
+	},
+	{
+		"replicates": [
+			"47_Rep1",
+			"47_Rep2"
+		],
+		"subject_id": "47"
+	},
+	{
+		"replicates": [
+			"48_Rep1",
+			"48_Rep2"
+		],
+		"subject_id": "48"
+	},
+	{
+		"replicates": [
+			"49_Rep1",
+			"49_Rep2"
+		],
+		"subject_id": "49"
+	},
+	{
+		"replicates": [
+			"50_Rep1",
+			"50_Rep2"
+		],
+		"subject_id": "50"
+	}
+]

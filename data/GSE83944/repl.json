@@ -1,0 +1,170 @@
+[
+	{
+		"replicates": [
+			"GSM3186429",
+			"GSM3186430"
+		],
+		"subject_id": "ct_13"
+	},
+	{
+		"replicates": [
+			"GSM3186431",
+			"GSM3186432"
+		],
+		"subject_id": "ct_16"
+	},
+	{
+		"replicates": [
+			"GSM3186433",
+			"GSM3186434"
+		],
+		"subject_id": "ct_19"
+	},
+	{
+		"replicates": [
+			"GSM3186435",
+			"GSM3186436"
+		],
+		"subject_id": "ct_22"
+	},
+	{
+		"replicates": [
+			"GSM3186437",
+			"GSM3186438"
+		],
+		"subject_id": "ct_25"
+	},
+	{
+		"replicates": [
+			"GSM3186439",
+			"GSM3186440"
+		],
+		"subject_id": "ct_28"
+	},
+	{
+		"replicates": [
+			"GSM3186441",
+			"GSM3186442"
+		],
+		"subject_id": "ct_31"
+	},
+	{
+		"replicates": [
+			"GSM3186443",
+			"GSM3186444"
+		],
+		"subject_id": "ct_34"
+	},
+	{
+		"replicates": [
+			"GSM3186445",
+			"GSM3186446"
+		],
+		"subject_id": "ct_37"
+	},
+	{
+		"replicates": [
+			"GSM3186447",
+			"GSM3186448"
+		],
+		"subject_id": "ct_40"
+	},
+	{
+		"replicates": [
+			"GSM3186449",
+			"GSM3186450"
+		],
+		"subject_id": "ct_43"
+	},
+	{
+		"replicates": [
+			"GSM3186451",
+			"GSM3186452"
+		],
+		"subject_id": "ct_46"
+	},
+	{
+		"replicates": [
+			"GSM3186453",
+			"GSM3186454"
+		],
+		"subject_id": "ct_49"
+	},
+	{
+		"replicates": [
+			"GSM3186455",
+			"GSM3186456"
+		],
+		"subject_id": "ct_55"
+	},
+	{
+		"replicates": [
+			"GSM3186457",
+			"GSM3186458"
+		],
+		"subject_id": "ct_58"
+	},
+	{
+		"replicates": [
+			"GSM3186459",
+			"GSM3186460"
+		],
+		"subject_id": "ct_61"
+	},
+	{
+		"replicates": [
+			"GSM3186461",
+			"GSM3186462"
+		],
+		"subject_id": "ct_64"
+	},
+	{
+		"replicates": [
+			"GSM3186463",
+			"GSM3186464"
+		],
+		"subject_id": "ct_67"
+	},
+	{
+		"replicates": [
+			"GSM3186465",
+			"GSM3186466"
+		],
+		"subject_id": "ct_70"
+	},
+	{
+		"replicates": [
+			"GSM3186467",
+			"GSM3186468"
+		],
+		"subject_id": "ct_73"
+	},
+	{
+		"replicates": [
+			"GSM3186469",
+			"GSM3186470"
+		],
+		"subject_id": "ct_76"
+	},
+	{
+		"replicates": [
+			"GSM3186471",
+			"GSM3186472"
+		],
+		"subject_id": "ct_79"
+	},
+	{
+		"replicates": [
+			"GSM3186473",
+			"GSM3186474"
+		],
+		"subject_id": "ct_82"
+	},
+	{
+		"replicates": [
+			"GSM3186475",
+			"GSM3186476"
+		],
+		"subject_id": "ct_85"
+	}
+]

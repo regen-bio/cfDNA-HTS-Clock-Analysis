@@ -1,0 +1,164 @@
+#!/usr/bin/env snakemake
+
+import itertools
+import numpy
+
+alpha_list = numpy.loadtxt("input/alpha.list")
+l1_ratio_list = numpy.loadtxt("input/l1_ratio.list")
+n_components_list = numpy.loadtxt("input/pca_n_components.list", dtype=int)
+
+
+rule shrink_table:
+	input:
+		"input/beta.tsv",
+		"input/samples.list",
+		"input/common_cpgs.list",
+	output:
+		"pca/shrink_table.tsv",
+	shell:
+		"python3 script/shrink_table.py"
+
+
+rule nan_fill:
+	input:
+		"pca/shrink_table.tsv",
+	output:
+		"pca/train_beta.tsv",
+	shell:
+		"python3 script/nan_fill.py"
+
+
+# master rule for pca decomposition
+rule beta_pca:
+	input:
+		expand("pca/train_beta_pca_{n}.tsv", n=n_components_list),
+		expand("pca/train_beta_pca_{n}.pkl", n=n_components_list),
+
+
+# master rule for train with full beta
+rule train_full:
+	input:
+		expand("train_full/train_a{i:02d}_l{j:02d}.pkl",
+			i=range(len(alpha_list)), j=range(len(l1_ratio_list)))
+
+
+# master rule for train with pca beta
+rule train_pca:
+	input:
+		expand(".flags/train_pca_{n}.done", n=n_components_list)
+
+
+# master rule for train with pca beta with a specific n_components
+for n in n_components_list:
+	rule_name = f"train_pca_{n}"
+
+	rule:
+		name: rule_name
+		input:
+			expand("train_pca_{n}/train_a{i:02d}_l{j:02d}.pkl", n=n,
+				i=range(len(alpha_list)), j=range(len(l1_ratio_list)))
+		output:
+			f".flags/{rule_name}.done",
+		shell:
+			"touch {output}"
+
+
+# make train rules
+for i, alpha in enumerate(alpha_list):
+	for j, l1_ratio in enumerate(l1_ratio_list):
+		rule_name = f"train_full/train_a{i:02d}_l{j:02d}"
+
+		rule:
+			name: rule_name
+			input:
+				beta="pca/train_beta.tsv",
+				meta="input/metadata.tsv",
+			params:
+				alpha=alpha,
+				l1_ratio=l1_ratio,
+			output:
+				f"{rule_name}.pkl",
+			shell:
+				"""python3 script/train.py \
+					-b {input.beta} \
+					-m {input.meta} \
+					-a {params.alpha} \
+					-l {params.l1_ratio} \
+					-o {output}"""
+
+
+# make pca decomposition rules
+for n in n_components_list:
+	rule_name = f"beta_pca_{n}"
+
+	rule:
+		name: rule_name
+		input:
+			beta="pca/train_beta.tsv",
+		params:
+			n_components=n,
+		output:
+			beta=f"pca/train_{rule_name}.tsv",
+			pca=f"pca/train_{rule_name}.pkl",
+		shell:
+			"""python3 script/beta_pca.py \
+				-b {input.beta} \
+				-n {params.n_components} \
+				-o {output.beta} \
+				-p {output.pca}"""
+
+
+# make train rule with pca beta
+for n in n_components_list:
+	for i, alpha in enumerate(alpha_list):
+		for j, l1_ratio in enumerate(l1_ratio_list):
+			rule_name = f"train_pca_{n}/train_a{i:02d}_l{j:02d}"
+
+			rule:
+				name: rule_name
+				input:
+					beta=f"pca/train_beta_pca_{n}.tsv",
+					meta="input/metadata.tsv",
+				params:
+					alpha=alpha,
+					l1_ratio=l1_ratio,
+				output:
+					f"{rule_name}.pkl",
+				shell:
+					"""python3 script/train.py \
+						-b {input.beta} \
+						-m {input.meta} \
+						-a {params.alpha} \
+						-l {params.l1_ratio} \
+						-r 1000000 \
+						-o {output}"""
+
+# bundle train_full
+rule bundle_train_full:
+	input:
+		expand("train_full/train_a{i:02d}_l{j:02d}.pkl",
+			i=range(len(alpha_list)), j=range(len(l1_ratio_list))),
+	output:
+		"train_res/train_full.pkl.gz",
+	shell:
+		"python3 script/bundle_gz_train_res.py -i train_full/ -o {output}"
+
+
+# pack train_pca
+for n in n_components_list:
+	rule:
+		name: f"bundle_train_pca_{n}"
+		input:
+			expand("train_pca_{n}/train_a{i:02d}_l{j:02d}.pkl", n=n,
+				i=range(len(alpha_list)), j=range(len(l1_ratio_list))),
+		params:
+			f"train_pca_{n}",
+		output:
+			f"train_res/train_pca_{n}.pkl.gz",
+		shell:
+			"python3 script/bundle_gz_train_res.py -i {params}/ -o {output}"
+
+
+rule bundle_train_pca:
+	input:
+		expand("train_pca_{n}.pkl.gz", n=n_components_list),
