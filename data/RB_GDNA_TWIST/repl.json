@@ -1,0 +1,170 @@
+[
+	{
+		"replicates": [
+			"GDNATWI1_GD024TW1",
+			"GDNATWI2_GD024TW2"
+		],
+		"subject_id": "MS240000024"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD029TW1",
+			"GDNATWI2_GD029TW2"
+		],
+		"subject_id": "MS240000029"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD039TW1",
+			"GDNATWI2_GD039TW2"
+		],
+		"subject_id": "MS240000039"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD089TW1",
+			"GDNATWI2_GD089TW2"
+		],
+		"subject_id": "MS240000089"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD104TW1",
+			"GDNATWI2_GD104TW2"
+		],
+		"subject_id": "MS240000104"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD105TW1",
+			"GDNATWI2_GD105TW2"
+		],
+		"subject_id": "MS240000105"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD112TW1",
+			"GDNATWI2_GD112TW2"
+		],
+		"subject_id": "MS240000112"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD117TW1",
+			"GDNATWI2_GD117TW2"
+		],
+		"subject_id": "MS240000117"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD121TW1",
+			"GDNATWI2_GD121TW2"
+		],
+		"subject_id": "MS240000121"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD124TW1",
+			"GDNATWI2_GD124TW2"
+		],
+		"subject_id": "MS240000124"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD125TW1",
+			"GDNATWI2_GD125TW2"
+		],
+		"subject_id": "MS240000125"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD130TW1",
+			"GDNATWI2_GD130TW2"
+		],
+		"subject_id": "MS240000130"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD133TW1",
+			"GDNATWI2_GD133TW2"
+		],
+		"subject_id": "MS240000133"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD136TW1",
+			"GDNATWI2_GD136TW2"
+		],
+		"subject_id": "MS240000136"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD137TW1",
+			"GDNATWI2_GD137TW2"
+		],
+		"subject_id": "MS240000137"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD140TW1",
+			"GDNATWI2_GD140TW2"
+		],
+		"subject_id": "MS240000140"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD142TW1",
+			"GDNATWI2_GD142TW2"
+		],
+		"subject_id": "MS240000142"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD145TW1",
+			"GDNATWI2_GD145TW2"
+		],
+		"subject_id": "MS240000145"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD147TW1",
+			"GDNATWI2_GD147TW2"
+		],
+		"subject_id": "MS240000147"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD148TW1",
+			"GDNATWI2_GD148TW2"
+		],
+		"subject_id": "MS240000148"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD153TW1",
+			"GDNATWI2_GD153TW2"
+		],
+		"subject_id": "MS240000153"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD160TW1",
+			"GDNATWI2_GD160TW2"
+		],
+		"subject_id": "MS240000160"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD168TW1",
+			"GDNATWI2_GD168TW2"
+		],
+		"subject_id": "MS240000168"
+	},
+	{
+		"replicates": [
+			"GDNATWI1_GD170TW1",
+			"GDNATWI2_GD170TW2"
+		],
+		"subject_id": "MS240000170"
+	}
+]

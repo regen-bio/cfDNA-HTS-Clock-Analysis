@@ -1,0 +1,170 @@
+[
+	{
+		"replicates": [
+			"CAP33_MS024",
+			"MS024TWI"
+		],
+		"subject_id": "MS240000024"
+	},
+	{
+		"replicates": [
+			"CAP33_MS029",
+			"MS029TWI"
+		],
+		"subject_id": "MS240000029"
+	},
+	{
+		"replicates": [
+			"CAP31_MS039",
+			"MS039TWI"
+		],
+		"subject_id": "MS240000039"
+	},
+	{
+		"replicates": [
+			"CAP32_MS089",
+			"MS089TWI"
+		],
+		"subject_id": "MS240000089"
+	},
+	{
+		"replicates": [
+			"CAP34_MS104",
+			"MS104TWI"
+		],
+		"subject_id": "MS240000104"
+	},
+	{
+		"replicates": [
+			"CAP34_MS105",
+			"MS105TWI"
+		],
+		"subject_id": "MS240000105"
+	},
+	{
+		"replicates": [
+			"CAP36_MS112",
+			"MS112TWI"
+		],
+		"subject_id": "MS240000112"
+	},
+	{
+		"replicates": [
+			"CAP35WGS_MS117",
+			"MS117TWI"
+		],
+		"subject_id": "MS240000117"
+	},
+	{
+		"replicates": [
+			"CAP34_MS121",
+			"MS121TWI"
+		],
+		"subject_id": "MS240000121"
+	},
+	{
+		"replicates": [
+			"CAP36_MS124",
+			"MS124TWI"
+		],
+		"subject_id": "MS240000124"
+	},
+	{
+		"replicates": [
+			"CAP36_MS125",
+			"MS125TWI"
+		],
+		"subject_id": "MS240000125"
+	},
+	{
+		"replicates": [
+			"CAP36_MS130",
+			"MS130TWI"
+		],
+		"subject_id": "MS240000130"
+	},
+	{
+		"replicates": [
+			"CAP35WGS_MS133",
+			"MS133TWI"
+		],
+		"subject_id": "MS240000133"
+	},
+	{
+		"replicates": [
+			"CAP34_MS136",
+			"MS136TWI"
+		],
+		"subject_id": "MS240000136"
+	},
+	{
+		"replicates": [
+			"CAP34_MS137",
+			"MS137TWI"
+		],
+		"subject_id": "MS240000137"
+	},
+	{
+		"replicates": [
+			"CAP33_MS140",
+			"MS140TWI"
+		],
+		"subject_id": "MS240000140"
+	},
+	{
+		"replicates": [
+			"CAP34_MS142",
+			"MS142TWI"
+		],
+		"subject_id": "MS240000142"
+	},
+	{
+		"replicates": [
+			"CAP36_MS145",
+			"MS145TWI"
+		],
+		"subject_id": "MS240000145"
+	},
+	{
+		"replicates": [
+			"CAP36_MS147",
+			"MS147TWI"
+		],
+		"subject_id": "MS240000147"
+	},
+	{
+		"replicates": [
+			"CAP36_MS148",
+			"MS148TWI"
+		],
+		"subject_id": "MS240000148"
+	},
+	{
+		"replicates": [
+			"CAP37WGS_MS153",
+			"MS153TWI"
+		],
+		"subject_id": "MS240000153"
+	},
+	{
+		"replicates": [
+			"CAP37WGS_MS160",
+			"MS160TWI"
+		],
+		"subject_id": "MS240000160"
+	},
+	{
+		"replicates": [
+			"CAP37WGS_MS168",
+			"MS168TWI"
+		],
+		"subject_id": "MS240000168"
+	},
+	{
+		"replicates": [
+			"CAP37WGS_MS170",
+			"MS170TWI"
+		],
+		"subject_id": "MS240000170"
+	}
+]

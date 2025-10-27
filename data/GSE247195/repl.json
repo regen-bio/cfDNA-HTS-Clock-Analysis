@@ -1,0 +1,65 @@
+[
+	{
+		"replicates": [
+			"Neu54yo_ZT12",
+			"Neu54yo_ZT12_replicate1",
+			"Neu54yo_ZT12_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT12"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT15",
+			"Neu54yo_ZT15_replicate1",
+			"Neu54yo_ZT15_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT15"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT18",
+			"Neu54yo_ZT18_replicate1",
+			"Neu54yo_ZT18_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT18"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT21",
+			"Neu54yo_ZT21_replicate1"
+		],
+		"subject_id": "Neu54yo_ZT21"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT24",
+			"Neu54yo_ZT24_replicate1",
+			"Neu54yo_ZT24_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT24"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT27",
+			"Neu54yo_ZT27_replicate1",
+			"Neu54yo_ZT27_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT27"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT30",
+			"Neu54yo_ZT30_replicate1",
+			"Neu54yo_ZT30_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT30"
+	},
+	{
+		"replicates": [
+			"Neu54yo_ZT9",
+			"Neu54yo_ZT9_replicate1",
+			"Neu54yo_ZT9_replicate2"
+		],
+		"subject_id": "Neu54yo_ZT9"
+	}
+]

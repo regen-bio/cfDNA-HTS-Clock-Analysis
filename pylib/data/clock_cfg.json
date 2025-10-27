@@ -1,0 +1,373 @@
+{
+	"abec": {
+		"color": "#1fe9af",
+		"display_name": "Abec",
+		"marker": "o",
+		"marker_char": "AB",
+		"name": "abec"
+	},
+	"altumage": {
+		"color": "#c8ef34",
+		"display_name": "AltumAge",
+		"marker": "s",
+		"marker_char": "AL",
+		"name": "altumage"
+	},
+	"cabec": {
+		"color": "#19e2bb",
+		"display_name": "Cabec",
+		"marker": "D",
+		"marker_char": "CA",
+		"name": "cabec"
+	},
+	"dnamfitage": {
+		"color": "#980e01",
+		"display_name": "DNAmFitage",
+		"marker": "^",
+		"marker_char": "DF",
+		"name": "dnamfitage"
+	},
+	"dnamphenoage": {
+		"color": "#fe9b2d",
+		"display_name": "DNAMPhenoAge",
+		"marker": "v",
+		"marker_char": "P",
+		"name": "dnamphenoage"
+	},
+	"dnamtl": {
+		"color": "#458afc",
+		"display_name": "DNAmTL",
+		"marker": "<",
+		"marker_char": "T",
+		"name": "dnamtl"
+	},
+	"dunedinpace": {
+		"color": "#a71401",
+		"display_name": "DunedinPACE",
+		"marker": ">",
+		"marker_char": "DP",
+		"name": "dunedinpace"
+	},
+	"eabec": {
+		"color": "#dfdf37",
+		"display_name": "Eabec",
+		"marker": "p",
+		"marker_char": "EA",
+		"name": "eabec"
+	},
+	"encen100": {
+		"color": "#b41b01",
+		"display_name": "Encen100",
+		"marker": "h",
+		"marker_char": "E100",
+		"name": "encen100"
+	},
+	"encen40": {
+		"color": "#fea933",
+		"display_name": "Encen40",
+		"marker": "o",
+		"marker_char": "E40",
+		"name": "encen40"
+	},
+	"epitoc1": {
+		"color": "#96fe44",
+		"display_name": "EpiTOC1",
+		"marker": "s",
+		"marker_char": "ToC",
+		"name": "epitoc1"
+	},
+	"gpage_10": {
+		"color": "#351e58",
+		"display_name": "GPAge_10",
+		"marker": "D",
+		"marker_char": "GP10",
+		"name": "gpage_10"
+	},
+	"gpage_30": {
+		"color": "#467df4",
+		"display_name": "GPAge_30",
+		"marker": "^",
+		"marker_char": "GP30",
+		"name": "gpage_30"
+	},
+	"gpage_71": {
+		"color": "#c12302",
+		"display_name": "GPAge_71",
+		"marker": "v",
+		"marker_char": "GP71",
+		"name": "gpage_71"
+	},
+	"gpage_a": {
+		"color": "#4249b1",
+		"display_name": "GPAge_A",
+		"marker": "<",
+		"marker_char": "GPa",
+		"name": "gpage_a"
+	},
+	"gpage_b": {
+		"color": "#4196ff",
+		"display_name": "GPAge_B",
+		"marker": ">",
+		"marker_char": "GPb",
+		"name": "gpage_b"
+	},
+	"gpage_c": {
+		"color": "#18d9c8",
+		"display_name": "GPAge_C",
+		"marker": "p",
+		"marker_char": "Gpc",
+		"name": "gpage_c"
+	},
+	"grimage": {
+		"color": "#bcf534",
+		"display_name": "GrimAge",
+		"marker": "h",
+		"marker_char": "G",
+		"name": "grimage"
+	},
+	"grimage2": {
+		"color": "#e7490c",
+		"display_name": "GrimAge2",
+		"marker": "o",
+		"marker_char": "G2",
+		"name": "grimage2"
+	},
+	"han": {
+		"color": "#28bceb",
+		"display_name": "Han",
+		"marker": "s",
+		"marker_char": "HA",
+		"name": "han"
+	},
+	"hannum": {
+		"color": "#5dfc6f",
+		"display_name": "Hannum",
+		"marker": "D",
+		"marker_char": "HN",
+		"name": "hannum"
+	},
+	"horvath2013": {
+		"color": "#31aff5",
+		"display_name": "Horvath2013",
+		"marker": "^",
+		"marker_char": "H",
+		"name": "horvath2013"
+	},
+	"hrsinchphenoage": {
+		"color": "#fbb637",
+		"display_name": "HRSinchPhenoAge",
+		"marker": "v",
+		"marker_char": "HR",
+		"name": "hrsinchphenoage"
+	},
+	"intrinclock": {
+		"color": "#fd8d27",
+		"display_name": "IntrinClock",
+		"marker": "<",
+		"marker_char": "IC",
+		"name": "intrinclock"
+	},
+	"knight": {
+		"color": "#d63506",
+		"display_name": "Knight",
+		"marker": ">",
+		"marker_char": "K",
+		"name": "knight"
+	},
+	"leecontrol": {
+		"color": "#fb7e21",
+		"display_name": "LeeControl",
+		"marker": "p",
+		"marker_char": "LC",
+		"name": "leecontrol"
+	},
+	"leerefinedrobust": {
+		"color": "#ed5510",
+		"display_name": "LeeRefinedRobust",
+		"marker": "h",
+		"marker_char": "LRR",
+		"name": "leerefinedrobust"
+	},
+	"leerobust": {
+		"color": "#3f3b97",
+		"display_name": "LeeRobust",
+		"marker": "o",
+		"marker_char": "LR",
+		"name": "leerobust"
+	},
+	"lin": {
+		"color": "#a4fc3c",
+		"display_name": "Lin",
+		"marker": "s",
+		"marker_char": "L",
+		"name": "lin"
+	},
+	"pcdnamtl": {
+		"color": "#4771e9",
+		"display_name": "pcDNAmTL",
+		"marker": "D",
+		"marker_char": "pTL",
+		"name": "pcdnamtl"
+	},
+	"pcgrimage": {
+		"color": "#4664da",
+		"display_name": "pcGrimAge",
+		"marker": "^",
+		"marker_char": "pG",
+		"name": "pcgrimage"
+	},
+	"pchannum": {
+		"color": "#1bd0d5",
+		"display_name": "pcHannum",
+		"marker": "v",
+		"marker_char": "pHN",
+		"name": "pchannum"
+	},
+	"pchorvath2013": {
+		"color": "#3a2d79",
+		"display_name": "pcHorvath2013",
+		"marker": "<",
+		"marker_char": "pH",
+		"name": "pchorvath2013"
+	},
+	"pcphenoage": {
+		"color": "#30123b",
+		"display_name": "pcPhenoAge",
+		"marker": ">",
+		"marker_char": "pP",
+		"name": "pcphenoage"
+	},
+	"pcskinandblood": {
+		"color": "#71fe5f",
+		"display_name": "pcSkinAndBlood",
+		"marker": "p",
+		"marker_char": "pSB",
+		"name": "pcskinandblood"
+	},
+	"pedbe": {
+		"color": "#22c5e2",
+		"display_name": "pcEDBE",
+		"marker": "h",
+		"marker_char": "pEA",
+		"name": "pedbe"
+	},
+	"pipekelasticnet": {
+		"color": "#38f491",
+		"display_name": "PipeKElasticNet",
+		"marker": "o",
+		"marker_char": "PEN",
+		"name": "pipekelasticnet"
+	},
+	"pipekfilteredh": {
+		"color": "#4456c7",
+		"display_name": "PipeKFilteredH",
+		"marker": "s",
+		"marker_char": "PFH",
+		"name": "pipekfilteredh"
+	},
+	"pipekretrainedh": {
+		"color": "#affa37",
+		"display_name": "PipeKRetrainedH",
+		"marker": "D",
+		"marker_char": "PRH",
+		"name": "pipekretrainedh"
+	},
+	"replitali": {
+		"color": "#3aa3fc",
+		"display_name": "Repliali",
+		"marker": "^",
+		"marker_char": "RP",
+		"name": "replitali"
+	},
+	"retroelementagev1": {
+		"color": "#cc2b04",
+		"display_name": "RetroElementAgeV1",
+		"marker": "v",
+		"marker_char": "RT1",
+		"name": "retroelementagev1"
+	},
+	"retroelementagev2": {
+		"color": "#d4e735",
+		"display_name": "RetroElementAgeV2",
+		"marker": "<",
+		"marker_char": "RT2",
+		"name": "retroelementagev2"
+	},
+	"skinandblood": {
+		"color": "#f1cb3a",
+		"display_name": "SkinAndBlood",
+		"marker": ">",
+		"marker_char": "SB",
+		"name": "skinandblood"
+	},
+	"stemtoc": {
+		"color": "#2aefa1",
+		"display_name": "StemToC",
+		"marker": "p",
+		"marker_char": "ST",
+		"name": "stemtoc"
+	},
+	"stoch": {
+		"color": "#7a0403",
+		"display_name": "StocH",
+		"marker": "h",
+		"marker_char": "sH",
+		"name": "stoch"
+	},
+	"stocp": {
+		"color": "#84ff51",
+		"display_name": "StocP",
+		"marker": "o",
+		"marker_char": "sP",
+		"name": "stocp"
+	},
+	"stocz": {
+		"color": "#f36315",
+		"display_name": "StocZ",
+		"marker": "s",
+		"marker_char": "sZ",
+		"name": "stocz"
+	},
+	"yingadaptage": {
+		"color": "#e9d539",
+		"display_name": "YingAdaptage",
+		"marker": "D",
+		"marker_char": "YA",
+		"name": "yingadaptage"
+	},
+	"yingcausage": {
+		"color": "#f8721c",
+		"display_name": "YingCausage",
+		"marker": "^",
+		"marker_char": "YC",
+		"name": "yingcausage"
+	},
+	"yingdamage": {
+		"color": "#f7c13a",
+		"display_name": "YingDamage",
+		"marker": "v",
+		"marker_char": "YD",
+		"name": "yingdamage"
+	},
+	"zhangblup": {
+		"color": "#df3f08",
+		"display_name": "ZhangBLUP",
+		"marker": "<",
+		"marker_char": "ZB",
+		"name": "zhangblup"
+	},
+	"zhangen": {
+		"color": "#880802",
+		"display_name": "ZhangEN",
+		"marker": ">",
+		"marker_char": "ZE",
+		"name": "zhangen"
+	},
+	"zhangmortality": {
+		"color": "#4af880",
+		"display_name": "ZhangMortality",
+		"marker": "p",
+		"marker_char": "ZM",
+		"name": "zhangmortality"
+	}
+}

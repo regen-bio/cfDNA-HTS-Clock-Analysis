@@ -1,0 +1,97 @@
+{
+	"RB_935K": {
+		"ref": null,
+		"color": "#00a79d",
+		"display_name": "gDNA_EPICv2",
+		"technology": "EPICv2",
+		"n_samples": 48
+	},
+	"RB_MSA": {
+		"ref": null,
+		"color": "#7ba882",
+		"display_name": "gDNA_MSA",
+		"technology": "MSA",
+		"n_samples": 48
+	},
+	"RB_GALAXY": {
+		"ref": null,
+		"color": "#bb7113",
+		"display_name": "cfDNA_Galaxy",
+		"technology": "Galaxy",
+		"n_samples": 48
+	},
+	"RB_TWIST": {
+		"ref": null,
+		"color": "#be1d2c",
+		"display_name": "cfDNA_Twist",
+		"technology": "Twist",
+		"n_samples": 48
+	},
+	"RB_GDNA_GALAXY": {
+		"ref": null,
+		"color": "#8a92c2",
+		"display_name": "gDNA_Galaxy",
+		"technology": "Galaxy",
+		"n_samples": 48
+	},
+	"RB_GDNA_TWIST": {
+		"ref": null,
+		"color": "#1a75bc",
+		"display_name": "gDNA_Twist",
+		"technology": "Twist",
+		"n_samples": 48
+	},
+	"RB_SYF": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "SRRSH-141",
+		"technology": "Twist",
+		"n_samples": 141
+	},
+	"GSE86832": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE86832",
+		"technology": "WGBS",
+		"n_samples": 2
+	},
+	"GSE144691": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE144691",
+		"technology": "WGBS",
+		"n_samples": 29
+	},
+	"GSE186458": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE186458",
+		"technology": "WGBS",
+		"n_samples": 23
+	},
+	"BUCCAL_TWIST": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "Buccal",
+		"technology": "Twist",
+		"n_samples": 100
+	},
+	"MSA": {
+		"ref": "RB_MSA"
+	},
+	"EPICv2": {
+		"ref": "RB_935K"
+	},
+	"cfDNAGalaxy": {
+		"ref": "RB_GALAXY"
+	},
+	"cfDNATwist": {
+		"ref": "RB_TWIST"
+	},
+	"gDNAGalaxy": {
+		"ref": "RB_GDNA_GALAXY"
+	},
+	"gDNATwist": {
+		"ref": "RB_GDNA_TWIST"
+	}
+}
