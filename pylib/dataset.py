@@ -16,7 +16,7 @@ class ReplGroup(list[dict[str]]):
 	def load_dataset(cls, dataset: str, *,
 		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
 	) -> Self:
-		fname = util.try_load_cache(f"data/{dataset}/repl.json",
+		fname = util.try_load_cache(f"data/{dataset}/final.repl.json",
 			cache_prefix=cache_prefix, auto_cache_if_missing=True)
 		with open(fname, "r") as fp:
 			data = json.load(fp)
@@ -31,7 +31,7 @@ class ReplGroup(list[dict[str]]):
 @dataclasses.dataclass
 class DatasetBase(object):
 	beta: pandas.DataFrame
-	depth: pandas.DataFrame
+	depth: pandas.DataFrame = None
 	metadata: pandas.DataFrame = None
 	repl_group: ReplGroup = None
 
@@ -82,8 +82,17 @@ class DatasetBase(object):
 
 		return cls(beta=beta, depth=depth, metadata=metadata, repl_group=repl_group)
 
+	@staticmethod
+	def _check_any(dataset: str, fnames: list[str]) -> str:
+		for fname in fnames:
+			if os.path.exists(f"data/{dataset}/{fname}"):
+				break
+		else:
+			raise FileNotFoundError(f"none of {fnames} found in data/{dataset}")
+		return fname
 
-class BetaDepth(DatasetBase):
+
+class RawBetaDepth(DatasetBase):
 	@classmethod
 	def load_dataset(cls, dataset: str, *,
 		with_metadata: bool = False,
@@ -91,16 +100,16 @@ class BetaDepth(DatasetBase):
 		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
 	) -> Self:
 		new = super()._load_dataset(dataset,
-			beta_fname="beta.tsv",
-			depth_fname="depth.tsv",
-			metadata_fname=("metadata.tsv" if with_metadata else None),
+			beta_fname="raw_beta.tsv",
+			depth_fname="raw_depth.tsv",
+			metadata_fname=("raw_metadata.tsv" if with_metadata else None),
 			with_repl_group=with_repl_group,
 			cache_prefix=cache_prefix
 		)
 		return new
 
 
-class BetaOnly(DatasetBase):
+class FinalBetaDepth(DatasetBase):
 	@classmethod
 	def load_dataset(cls, dataset: str, *,
 		with_metadata: bool = False,
@@ -108,8 +117,64 @@ class BetaOnly(DatasetBase):
 		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
 	) -> Self:
 		new = super()._load_dataset(dataset,
-			beta_fname="beta.tsv",
-			metadata_fname=("metadata.tsv" if with_metadata else None),
+			beta_fname=cls._check_any(dataset,
+				["final.beta.tsv", "final.filtered.beta.tsv"]
+			),
+			depth_fname="raw_depth.tsv",
+			metadata_fname=("final.metadata.tsv" if with_metadata else None),
+			with_repl_group=with_repl_group,
+			cache_prefix=cache_prefix,
+		)
+		return new
+
+
+class FinalFullBetaDepth(DatasetBase):
+	@classmethod
+	def load_dataset(cls, dataset: str, *,
+		with_metadata: bool = False,
+		with_repl_group: bool = False,
+		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
+	) -> Self:
+		new = super()._load_dataset(dataset,
+			beta_fname="final.full.beta.tsv",
+			depth_fname="raw_depth.tsv",
+			metadata_fname=("final.metadata.tsv" if with_metadata else None),
+			with_repl_group=with_repl_group,
+			cache_prefix=cache_prefix
+		)
+		return new
+
+
+class FinalFilteredBetaDepth(DatasetBase):
+	@classmethod
+	def load_dataset(cls, dataset: str, *,
+		with_metadata: bool = False,
+		with_repl_group: bool = False,
+		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
+	) -> Self:
+		new = super()._load_dataset(dataset,
+			beta_fname="final.filtered.beta.tsv",
+			depth_fname="raw_depth.tsv",
+			metadata_fname=("final.metadata.tsv" if with_metadata else None),
+			with_repl_group=with_repl_group,
+			cache_prefix=cache_prefix
+		)
+		return new
+
+
+class FinalBetaOnly(DatasetBase):
+	@classmethod
+	def load_dataset(cls, dataset: str, *,
+		with_metadata: bool = False,
+		with_repl_group: bool = False,
+		cache_prefix: str = util.DEFAULT_CACHE_PREFIX
+	) -> Self:
+		new = super()._load_dataset(dataset,
+			beta_fname=cls._check_any(dataset,
+				["final.beta.tsv", "final.filtered.beta.tsv"]
+			),
+			depth_fname=None,
+			metadata_fname=("final.metadata.tsv" if with_metadata else None),
 			with_repl_group=with_repl_group,
 			cache_prefix=cache_prefix
 		)

@@ -20,15 +20,15 @@ import pylib
 
 def read_and_prep_simu_result(dataset: str) -> pandas.DataFrame:
 	# read repl group info
-	with open(f"data/{dataset}/repl.json", "r") as fp:
+	with open(f"data/{dataset}/final.repl.json", "r") as fp:
 		repl_group: list[dict] = json.load(fp)
 	repl = list(itertools.chain(*map(lambda x: x["replicates"], repl_group)))
 	repl_to_subj = {r: v["subject_id"]
-		for v in repl_group for r in v["replicates"]}
+					for v in repl_group for r in v["replicates"]}
 
 	# read predict results df
 	# pred_df has no index
-	pred_df = pandas.read_csv(f"pred_res/reprod.{dataset}.pred.tsv", sep="\t")
+	pred_df = pandas.read_csv(f"reprod.{dataset}.pred.tsv", sep="\t")
 	# select with #cpg > 0, i.e. ignoring constant models
 	pred_df = pred_df[(pred_df["n_cpgs"] > 10) & (pred_df["n_iter"] < 100000)]
 
@@ -137,11 +137,11 @@ def setup_layout(datasets: list[str], columns: list[str]) -> dict:
 
 
 def _plot_full_alpha(axes: matplotlib.axes.Axes, *,
-	datasets: list[str], dataset_cfgs: pylib.DatasetCfgLib,
-	results: dict[str, pandas.DataFrame],
-	shadow_topleft_axes: matplotlib.axes.Axes,
-	shadow_right_axes: matplotlib.axes.Axes,
-) -> list:
+		datasets: list[str], dataset_cfgs: pylib.DatasetCfgLib,
+		results: dict[str, pandas.DataFrame],
+		shadow_topleft_axes: matplotlib.axes.Axes,
+		shadow_right_axes: matplotlib.axes.Axes,
+	) -> list:
 	axes.set_xscale("log")
 
 	# scatter configs
@@ -201,20 +201,13 @@ def _plot_full_alpha(axes: matplotlib.axes.Axes, *,
 	return
 
 
-def _adjust_fade(color: str, factor: float) -> str:
-	hsv = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(color))
-	hsv[1] = max(0.0, hsv[1] * factor)
-	hsv[2] = min(1.0, hsv[2] / factor)
-	return matplotlib.colors.to_hex(matplotlib.colors.hsv_to_rgb(hsv))
-
-
 def _plot_rsub_grid(axes_list: list[matplotlib.axes.Axes], *,
-	datasets: list[str], dataset_cfgs: pylib.DatasetCfgLib,
-	results: dict[str, pandas.DataFrame],
-	rsub_ncol: int, rsub_nrow: int,
-	xkey: str, ykey: str, xlabel: str, ylabel: str,
-	logx: bool = False, show_ylabel: bool = False,
-) -> dict[str, tuple]:
+		datasets: list[str], dataset_cfgs: pylib.DatasetCfgLib,
+		results: dict[str, pandas.DataFrame],
+		rsub_ncol: int, rsub_nrow: int,
+		xkey: str, ykey: str, xlabel: str, ylabel: str,
+		logx: bool = False, show_ylabel: bool = False,
+	) -> dict[str, tuple]:
 
 	# plot with highlighted dataset for each
 	for axes, h_ds in zip(axes_list, datasets):
@@ -321,7 +314,8 @@ def _main():
 		"RB_GALAXY", "RB_TWIST"]
 	columns = ["ncpg", "alpha", "lambda"]
 
-	full_simu_res: dict = {ds: read_and_prep_simu_result(ds) for ds in datasets}
+	full_simu_res: dict = {
+		ds: read_and_prep_simu_result(ds) for ds in datasets}
 	# filt_simu_res = {k: v[(v["alpha"] < 1e-2) & (v["mae"] < 5)]
 	# for k, v in full_simu_res.items()}
 	filt_simu_res = {k: v[v["alpha"] < 1e-2] for k, v in full_simu_res.items()}
@@ -340,7 +334,7 @@ def _main():
 	# legend
 	legend = layout["full_alpha"].legend(handles=handles,
 		loc=3, bbox_to_anchor=(1.07, -0.02), ncol=2,
-		frameon=True, handlelength=0.75, title="Datasets (through A-G)",
+		frameon=True, handlelength=0.75, title="Datasets (through a-d)",
 	)
 
 	# plot rsub grids
@@ -374,8 +368,9 @@ def _main():
 	linreg_res["lambda"] = _res
 
 	figure.savefig("fig_3.svg", dpi=600)
+	figure.savefig("fig_3.png", dpi=600)
+	figure.savefig("fig_3.pdf", dpi=600)
 	matplotlib.pyplot.close(figure)
-	return
 
 
 if __name__ == "__main__":

@@ -1,364 +1,239 @@
 #!/usr/bin/env python3
 
 import dataclasses
-import json
+import functools
+import pickle
 
 import matplotlib
 import matplotlib.axes
-import matplotlib.lines
 import matplotlib.patches
 import matplotlib.pyplot
+import matplotlib.legend
+import matplotlib.legend_handler
+import matplotlib.lines
 import mpllayout
 import numpy
-import threadpoolctl
+import pandas
 
 import pylib
 
+matplotlib.rcParams["font.size"] = 8
+
 
 @dataclasses.dataclass
-class DepthCateCfg(object):
-	dmin: int = None
-	dmax: int = None
+class SimMethodCfg(object):
+	key: str
+	file: str
+	xlabel: str
+	ruler: float = None
+	xmax: float = 200
+	title: str = None
 
-	def __post_init__(self):
-		if self.dmin is not None and self.dmax is not None and self.dmin > self.dmax:
-			raise ValueError("Invilid depth range")
-		return
+	@functools.cached_property
+	def stat(self) -> dict[str, dict[str, pandas.DataFrame]]:
+		pylib.logger.info(f"loading data from {self.file}")
+		with open(self.file, "rb") as fp:
+			ret = pickle.load(fp)
+		return ret
+
+
+@dataclasses.dataclass
+class SimSeriesCfg(object):
+	key: str
+	color: str
+	display_name: str
+	unit: str
 
 	@property
-	def display_name(self) -> str:
-		if self.dmin == self.dmax == 0:
-			ret = "0/Missing"
-		elif self.dmin == self.dmax:
-			ret = str(self.dmin)
-		elif self.dmin is None:
-			ret = f"$\\leq$ {self.dmax}"
-		elif self.dmax is None:
-			ret = f"$\\geq$ {self.dmin}"
-		else:
-			ret = f"{self.dmin}-{self.dmax}"
-		return ret
-
-	def __contains__(self, value: int) -> bool:
-		if self.dmin is None:
-			ret = value <= self.dmax
-		elif self.dmax is None:
-			ret = self.dmin <= value
-		else:
-			ret = self.dmin <= value <= self.dmax
-		return ret
-
-	def count_from(self, depth_count: dict[int, int]) -> int:
-		return sum(v for k, v in depth_count.items() if k in self)
+	def ylabel(self) -> str:
+		return f"{self.display_name} ({self.unit})"
 
 
-def load_ill_cpg_surv_data(fname: str) -> dict[str, dict]:
-	with open(fname, "r") as fp:
-		ret: dict[str] = json.load(fp)
-	# convert ill_depth_count keys from str to int
-	for v in ret.values():
-		v["ill_depth_count"] = {int(k): val
-			for k, val in v["ill_depth_count"].items()}
-	return ret
+class ShadedLineHandler(matplotlib.legend_handler.HandlerLine2D):
+	def create_artists(self, legend, orig_handle, xdescent, ydescent,
+		width, height, fontsize, transform,
+	) -> list:
+		artists = super().create_artists(legend, orig_handle,
+			xdescent, ydescent, width, height, fontsize, transform
+		)
+		rect_h = (artists[0].get_ydata()[0] - ydescent) * 2
+
+		# create the shade artist
+		artist = matplotlib.patches.Rectangle((0, ydescent), width, rect_h,
+			edgecolor="none", facecolor=orig_handle.get_color() + "20",
+		)
+		artists.append(artist)
+		return artists
 
 
-def setup_layout(datasets: list[str], ncols: int = 2) -> dict:
+def setup_layout(*, sim_method_cfgs: list[SimMethodCfg],
+	sim_series_cfgs: list[SimSeriesCfg],
+):
 	lc = mpllayout.LayoutCreator(
-		left_margin=0.8,
+		left_margin=0.7,
 		right_margin=0.2,
-		top_margin=0.4,
-		bottom_margin=1.5,
+		bottom_margin=1.2,
+		top_margin=0.5,
 	)
-	n_datasets = len(datasets)
-	nrows = (n_datasets + ncols - 1) // ncols
 
-	# clock_cov_w = 3.4
-	# clock_cov_h = 0.4 * n_datasets
-	# clock_cov_top_gap_h = 0.8
-	# clock_cov_offset_x = 0.5
+	# depth sims
+	n_sim_methods = len(sim_method_cfgs)
+	n_sim_series = len(sim_series_cfgs)
 
-	panel_dist_w = 1.8
-	panel_dist_h = 0.7
-	panel_dist_gap_w = 0.2
-	ill_dist_s = 0.9
+	sim_w = 2.0
+	sim_h = 2.0
+	sim_gap_h = 0.1
+	sim_meth_w = sim_w
+	sim_meth_gap_w = 0.7
 
-	block_w = panel_dist_w + panel_dist_gap_w + ill_dist_s
-	block_h = max(panel_dist_h, ill_dist_s)
-	block_gap_w = 1.0
-	block_gap_h = 0.7
-
-	# ill cpg clock coverate
-	# clock_cov = lc.add_frame("clock_cov_ill")
-	# clock_cov.set_anchor("bottomleft", offsets=(clock_cov_offset_x, 0))
-	# clock_cov.set_size(clock_cov_w, clock_cov_h)
-
-	# axes complex of distr curve and pie
-	for i, v in enumerate(datasets):
-		ri = nrows - (i // ncols) - 1
-		ci = i % ncols
-
-		panel_dist = lc.add_frame(f"{v}_panel_dist")
-		panel_dist.set_anchor("bottomleft",
-			offsets=(
-				(block_w + block_gap_w) * ci,
-				(block_h + block_gap_h) * ri,
-			)
-		)
-		panel_dist.set_size(panel_dist_w, panel_dist_h)
-
-		ill_dist = lc.add_frame(f"{v}_ill_dist")
-		ill_dist.set_anchor("topleft",
-			ref_frame=panel_dist,
-			ref_anchor="topright",
-			offsets=(panel_dist_gap_w, 0)
-		)
-		ill_dist.set_size(ill_dist_s, ill_dist_s)
+	for mi, method_cfg in enumerate(sim_method_cfgs):
+		for si, series_cfg in enumerate(sim_series_cfgs):
+			axes = lc.add_frame(f"axes_{series_cfg.key}_{method_cfg.key}")
+			axes.set_anchor("bottomleft", offsets=(
+				(sim_meth_w + sim_meth_gap_w) * mi,
+				(sim_h + sim_gap_h) * (n_sim_series - si - 1),
+			))
+			axes.set_size(sim_w, sim_h)
 
 	layout = lc.create_figure_layout()
-	layout["nrows"] = nrows
-	layout["ncols"] = ncols
 
 	return layout
 
 
-def _plot_curve_area(axes: matplotlib.axes.Axes,
-	x: numpy.ndarray, y: numpy.ndarray, *,
-	color: str,
-	base: float = 0.0,
-):
-	y /= y.max()
-	axes.plot(x, y + base, clip_on=False, linewidth=1.0, color=color, zorder=5)
-	axes.fill_between(x, base, y + base, clip_on=False, edgecolor="none",
-		facecolor=color + "40", zorder=4,
-	)
-	axes.axhline(base, linewidth=0.5, color=color, zorder=5)
-	return
+def _plot_depth_sim_stat_single(axes: matplotlib.axes.Axes,
+	sim_method_cfg: SimMethodCfg, *,
+	datasets: list[str], dataset_cfgs: dict[str, pylib.DatasetCfg],
+	sim_series_cfg: SimSeriesCfg, n_list: list[int] = None,
+	add_legend: bool = False, show_xlabel: bool = False, show_title: bool = False,
+) -> None:
 
+	stat = sim_method_cfg.stat
+	if n_list is None:
+		n_list = stat[datasets[0]][sim_series_cfg.key].index.tolist()
 
-def _plot_ill_cpg_stat_panel_dist(axes: matplotlib.axes.Axes, data: dict[str], *,
-	dataset_cfg: pylib.DatasetCfg,
-	connect_axes: matplotlib.axes.Axes,
-):
-	edges = numpy.array(data["beta_hist_bins"])
-	pos = (edges[:-1] + edges[1:]) / 2
-	density = numpy.array(data["beta_hist"])
-
-	# plot full value curve
-	_plot_curve_area(axes, pos, density, color=dataset_cfg.color, base=0.0)
-
-	# add red boxes
-	for v in [0, -1]:
-		p = matplotlib.patches.Rectangle((pos[v] - 0.02, -0.08),
-			0.04, density[v] + 0.16,
-			clip_on=False, zorder=6, linestyle="--", linewidth=0.7,
-			edgecolor="#ff0000c0", facecolor="none",
-		)
-		axes.add_patch(p)
-
-	# add connections
-	p = matplotlib.patches.ConnectionPatch(
-		xyA=(pos[0] + 0.02, -0.08), coordsA=axes.transData,
-		xyB=(pos[-1] - 0.02, -0.08), coordsB=axes.transData,
-		edgecolor="#ff000080", facecolor="none",
-	)
-	axes.add_artist(p)
-	p = matplotlib.patches.ConnectionPatch(
-		xyA=(pos[0] + 0.02, density[0] + 0.08), coordsA=axes.transData,
-		xyB=(pos[-1] - 0.02, density[-1] + 0.08), coordsB=axes.transData,
-		edgecolor="#ff000080", facecolor="none",
-	)
-	axes.add_artist(p)
-	p = matplotlib.patches.ConnectionPatch(
-		xyA=(pos[-1] + 0.02, -0.08), coordsA=axes.transData,
-		xyB=(-0.04, -0.04), coordsB=connect_axes.transAxes,
-		edgecolor="#ff000080", facecolor="none",
-	)
-	axes.add_artist(p)
-	p = matplotlib.patches.ConnectionPatch(
-		xyA=(pos[-1] + 0.02, density[-1] + 0.08), coordsA=axes.transData,
-		xyB=(-0.04, 1.04), coordsB=connect_axes.transAxes,
-		edgecolor="#ff000080", facecolor="none",
-	)
-	axes.add_artist(p)
-
-	# misc
-	axes.tick_params(
-		left=False, labelleft=False,
-	)
-	axes.grid(axis="x", color="#e0e0e0")
-	axes.set_xlabel("Beta")
-	axes.set_ylabel("P.D.")
-	title = dataset_cfg.display_name
-	if dataset_cfg.technology not in title:
-		title += f" [{dataset_cfg.technology}]"
-	axes.set_title(title)
-
-	return
-
-
-def _plot_ill_cpg_stat_ill_dist(axes: matplotlib.axes.Axes, data: dict[str], *,
-	depth_cate_cfgs: list[DepthCateCfg],
-	add_legend: bool = False,
-):
-	cmap = matplotlib.colormaps["viridis"]
-
-	# count depth in each category
-	depth_count = data["ill_depth_count"]
-	depth_total = sum(depth_count.values())
-
-	cate_depth = [cfg.count_from(depth_count) for cfg in depth_cate_cfgs]
-	cate_total = sum(cate_depth)
-
-	# plot for each names depth
-	cur_theta = -(cate_total / depth_total * 180)
 	handles = list()
-	for i, d in enumerate(cate_depth):
-		cfg = depth_cate_cfgs[i]
-		_theta = d / depth_total * 360
-		facecolor = "#d0d0d0" if (i == 0) else cmap(i / (len(depth_cate_cfgs) - 1))
-		# pyplot
-		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
-			clip_on=False, label=cfg.display_name, zorder=5, linewidth=0.5,
-			edgecolor="#ffffff", facecolor=facecolor,
-		)
-		axes.add_patch(p)
-		cur_theta += _theta
+	for ds in datasets:
+		vals = stat[ds][sim_series_cfg.key].values.astype(float)
+		lb = numpy.quantile(vals, 0.25, axis=1)
+		ub = numpy.quantile(vals, 0.75, axis=1)
+		mean = vals.mean(axis=1)
+
+		ds_cfg = dataset_cfgs[ds]
+		p = axes.plot(n_list, mean, linewidth=1.0, color=ds_cfg.color, zorder=10,
+			label=ds_cfg.display_name)[0]
 		handles.append(p)
-
-	# add other if necessary
-	if cate_total < depth_total:
-		_theta = (depth_total - cate_total) / depth_total * 360
-		label = f"> {depth_cate_cfgs[-1].dmax}"
-		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
-			clip_on=False, label=label, zorder=5, linewidth=0.5,
-			edgecolor="#000000", facecolor="#ffffff",
+		axes.fill_between(n_list, lb, ub, zorder=5,
+			edgecolor="none", facecolor=ds_cfg.color + "20",
 		)
-		axes.add_patch(p)
-		handles.append(p)
 
-	# add center circle and text
-	p = matplotlib.patches.Circle((0, 0), 0.5, clip_on=False, edgecolor="none",
-		facecolor="#ffffff", zorder=10)
-	axes.add_patch(p)
-	axes.text(0, 0,
-		f"{data["ill_frac"] * 100:.1f}%",
-		fontweight="bold", zorder=11,
-		horizontalalignment="center", verticalalignment="center",
-	)
-
-	# add a 3-side box to complete the connection
-	line = matplotlib.lines.Line2D([-0.04, 1.04, 1.04, -0.04],
-		[-0.04, -0.04, 1.04, 1.04], clip_on=False, transform=axes.transAxes,
-		linestyle="-", linewidth=1.0, color="#ff000080"
-	)
-	axes.add_artist(line)
+	if sim_method_cfg.ruler is not None:
+		axes.axvline(sim_method_cfg.ruler, color="#e36363",
+			linestyle="-", linewidth=1.0, zorder=8)
+		# assume ylim is not adjusted
+		text_y = axes.transData.inverted().transform(
+			axes.transAxes.transform((0, 0.95))
+		)[1]
+		axes.text(sim_method_cfg.ruler, text_y, f" {sim_method_cfg.ruler:d}",
+			color="#e36363", fontsize=10, zorder=8,
+			horizontalalignment="left", verticalalignment="top",
+		)
 
 	# legend
 	if add_legend:
-		axes.legend(handles=handles, loc=1, bbox_to_anchor=[1.02, -0.36],
-			frameon=True, handlelength=0.75, ncol=3,  # title="Depth",
-			fontsize=10, title="Depth ranges", title_fontsize=12,
+		handler_map = {matplotlib.lines.Line2D: ShadedLineHandler()}
+		legend = axes.legend(handles=handles, handler_map=handler_map,
+			loc=2, bbox_to_anchor=(0.05, -0.30), ncol=4, handlelength=1.0,
 		)
 
 	# misc
-	for sp in axes.spines.values():
-		sp.set_visible(False)
+	axes.grid(linewidth=0.5, color="#d0d0d0")
 	axes.tick_params(
-		left=False, labelleft=False,
+		left=True, labelleft=True,
 		right=False, labelright=False,
-		bottom=False, labelbottom=False,
+		bottom=True, labelbottom=show_xlabel,
 		top=False, labeltop=False,
 	)
-	axes.set_xlabel("Depths of\n0&1 betas")
-	axes.set_xlim(-1, 1)
-	axes.set_ylim(-1, 1)
-	return
-
-
-def _plot_ill_cpg_stat(*,
-	panel_dist_axes: matplotlib.axes.Axes,
-	ill_dist_axes: matplotlib.axes.Axes,
-	data: dict[str],
-	dataset_cfg: pylib.DatasetCfg,
-	depth_cate_cfgs: list[DepthCateCfg],
-	add_ill_dist_legend: bool = False,
-):
-	# plot beta value distribution of full panel
-	_plot_ill_cpg_stat_panel_dist(panel_dist_axes, data,
-		dataset_cfg=dataset_cfg,
-		connect_axes=ill_dist_axes,
-	)
-
-	# plot depth distribution of ill cpgs
-	_plot_ill_cpg_stat_ill_dist(ill_dist_axes, data,
-		depth_cate_cfgs=depth_cate_cfgs,
-		add_legend=add_ill_dist_legend,
-	)
+	axes.set_xlim(0, min(max(n_list), sim_method_cfg.xmax))
+	if show_xlabel:
+		axes.set_xlabel(sim_method_cfg.xlabel, fontsize=10)
+	axes.set_ylabel(sim_series_cfg.ylabel, fontsize=10)
+	if show_title and (sim_method_cfg.title is not None):
+		axes.set_title(sim_method_cfg.title, fontsize=10)
 
 	return
 
 
-def _plot_ill_cpg_survey(layout: dict, datasets: list[str], clocks: list[str],
-	dataset_cfgs: pylib.DatasetCfgLib,
-	depth_cate_cfgs: list[DepthCateCfg],
-):
-	n_datasets = len(datasets)
-	ncols = layout["ncols"]
+def _plot_depth_sim_stat(layout: dict[str], method_cfgs: list[SimMethodCfg],
+	*, datasets: list[str], dataset_cfgs: dict[str, pylib.DatasetCfg],
+	sim_series_cfgs: list[SimSeriesCfg], n_list: list[int] = None,
+	skip: bool = False,
+) -> None:
+	if skip:
+		pylib.logger.info("skipping plotting depth sim stat")
+		return
 
-	# load ill cpg surv data
-	data = load_ill_cpg_surv_data("ill_cpg_stat.json")
+	n_series = len(sim_series_cfgs)
 
-	# plot
-	if n_datasets > ncols:
-		legend_idx = (n_datasets // ncols) * ncols - 1
-	else:
-		legend_idx = n_datasets - 1
-	for i, ds in enumerate(datasets):
-		_plot_ill_cpg_stat(
-			panel_dist_axes=layout[f"{ds}_panel_dist"],
-			ill_dist_axes=layout[f"{ds}_ill_dist"],
-			data=data[ds],
-			dataset_cfg=dataset_cfgs[ds],
-			depth_cate_cfgs=depth_cate_cfgs,
-			add_ill_dist_legend=(i == legend_idx),
-		)
-
+	for method_cfg in method_cfgs:
+		for si, series_cfg in enumerate(sim_series_cfgs):
+			_plot_depth_sim_stat_single(
+				layout[f"axes_{series_cfg.key}_{method_cfg.key}"],
+				method_cfg,
+				datasets=datasets,
+				dataset_cfgs=dataset_cfgs,
+				sim_series_cfg=series_cfg,
+				n_list=n_list,
+				add_legend=(si == n_series - 1) and (method_cfg == method_cfgs[0]),
+				show_xlabel=(si == n_series - 1),
+				show_title=(si == 0),
+			)
 	return
 
 
 def _main():
 	# configs
-	datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST", "RB_GALAXY", "RB_TWIST",
-		"RB_SYF", "GSE144691", "GSE86832", "BUCCAL_TWIST"]
-	depth_cate_cfgs = [
-		DepthCateCfg(dmin=0, dmax=0),
-		DepthCateCfg(dmin=1, dmax=2),
-		DepthCateCfg(dmin=3, dmax=5),
-		DepthCateCfg(dmin=6, dmax=10),
-		DepthCateCfg(dmin=11, dmax=20),
-		DepthCateCfg(dmin=21, dmax=None),
+	datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST", "RB_GALAXY", "RB_TWIST"]
+	sim_method_cfgs = [
+		SimMethodCfg(key="binomial_stoc", xlabel="Depth",
+			ruler=20, xmax=100, file="binomial_stoc.stat.pkl",
+			title="Effect on\nbinomial stochasticity",
+		),
+		SimMethodCfg(key="depth_round", xlabel="Depth",
+			ruler=10, xmax=50, file="beta_resolution.stat.pkl",
+			title="Effect on\nbeta value resolution",
+		),
+	]
+	sim_series_cfgs = [
+		SimSeriesCfg(key="mae", color="#3F6EE5",
+			display_name="MAE", unit="years"),
+		SimSeriesCfg(key="repl_mad", color="#E5763F",
+			display_name="RD", unit="years"),
 	]
 
 	# load data
 	dataset_cfgs = pylib.DatasetCfgLib.from_json()
-	clocks = pylib.clock.load_clocks()
+	clock_cfgs = pylib.clock_cfg.ClockCfgLib.from_json()
 
 	# plot
-	layout = setup_layout(datasets)
+	layout = setup_layout(
+		sim_series_cfgs=sim_series_cfgs,
+		sim_method_cfgs=sim_method_cfgs,
+	)
+
 	figure = layout["figure"]
 
-	_plot_ill_cpg_survey(layout, datasets=datasets,
-		clocks=clocks,
-		dataset_cfgs=dataset_cfgs,
-		depth_cate_cfgs=depth_cate_cfgs,
+	_plot_depth_sim_stat(layout, sim_method_cfgs,
+		datasets=datasets, dataset_cfgs=dataset_cfgs,
+		sim_series_cfgs=sim_series_cfgs,
+		skip=False,
 	)
 
 	figure.savefig("fig_s8.svg", dpi=600)
+	figure.savefig("fig_s8.png", dpi=600)
+	figure.savefig("fig_s8.pdf", dpi=600)
 	matplotlib.pyplot.close(figure)
-
 	return
 
 
 if __name__ == "__main__":
-	with threadpoolctl.threadpool_limits(limits=24, user_api="blas"):
-		_main()
+	_main()

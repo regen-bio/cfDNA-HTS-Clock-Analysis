@@ -13,7 +13,6 @@ DEFAULT_CACHE_PREFIX = os.path.join(os.path.dirname(__file__),
 def try_load_cache(fname: str, cache_prefix: str = None, *,
 	auto_cache_if_missing: bool = False,
 ) -> str:
-	# force load original file
 	return fname
 
 

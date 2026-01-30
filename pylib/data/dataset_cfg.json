@@ -41,12 +41,15 @@
 		"technology": "Twist",
 		"n_samples": 48
 	},
-	"RB_SYF": {
+	"RB_SRRSH": {
 		"ref": null,
 		"color": "#808080",
 		"display_name": "SRRSH-141",
 		"technology": "Twist",
 		"n_samples": 141
+	},
+	"RB_SYF": {
+		"ref": "RB_SRRSH"
 	},
 	"GSE86832": {
 		"ref": null,
@@ -75,6 +78,76 @@
 		"display_name": "Buccal",
 		"technology": "Twist",
 		"n_samples": 100
+	},
+	"E_MATB_8770": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "E_MATB",
+		"technology": "RRBS",
+		"n_samples": 60
+	},
+	"GSE149438": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE149438",
+		"technology": "Targeted BS-Seq",
+		"n_samples": 300
+	},
+	"GSE149438_C": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE149438 (Cancer)",
+		"technology": "Targeted BS-Seq",
+		"n_samples": 254
+	},
+	"GSE149438_N": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE149438 (Normal)",
+		"technology": "Targeted BS-Seq",
+		"n_samples": 46
+	},
+	"GSE164600": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE164600",
+		"technology": "WGBS",
+		"n_samples": 24
+	},
+	"GSE164600_D": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE164600 (ALS)",
+		"technology": "WGBS",
+		"n_samples": 12
+	},
+	"GSE164600_N": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "GSE164600 (Normal)",
+		"technology": "WGBS",
+		"n_samples": 12
+	},
+	"PRJNA952575": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "PRJNA952575",
+		"technology": "WGBS",
+		"n_samples": 38
+	},
+	"PRJNA952575_C": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "PRJNA952575 (Cancer)",
+		"technology": "WGBS",
+		"n_samples": 29
+	},
+	"PRJNA952575_H": {
+		"ref": null,
+		"color": "#808080",
+		"display_name": "PRJNA952575 (Normal)",
+		"technology": "WGBS",
+		"n_samples": 9
 	},
 	"MSA": {
 		"ref": "RB_MSA"

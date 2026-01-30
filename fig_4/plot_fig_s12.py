@@ -1,238 +1,218 @@
 #!/usr/bin/env python3
 
-import dataclasses
 import pdb
+import pickle
+import sys
 
 import matplotlib
 import matplotlib.axes
-import matplotlib.collections
-import matplotlib.legend
-import matplotlib.legend_handler
-import matplotlib.patheffects
 import matplotlib.pyplot
-import matplotlib.text
 import mpllayout
+import numpy
+import threadpoolctl
 
 import pylib
 
 
-@dataclasses.dataclass
-class SeriesConfig(object):
-	key: str
-	display_name: str
-	path_suffix: str
-	marker: str = None
-	primary: bool = False
+def _prep_heatmap_data(data: dict[str, pylib.dataset.RawBetaDepth]) -> dict[str]:
+	# determine:
+	#   beta bin
+	#   depth bin
+	#   histograms
+	#   histogram vmax
 
+	# all_beta = numpy.hstack([v.beta.values.flatten() for v in data.values()])
+	beta_bin = numpy.linspace(0, 1, 98)  # use 98 since 97 is a prime
 
-def _load_and_prep_data(datasets: list[str], clocks: list[str],
-	series_cfgs: list[SeriesConfig],
-) -> dict[str, dict[str]]:
-	ret = dict()
-	for ds in datasets:
-		repl_group = pylib.dataset.ReplGroup.load_dataset(ds)
+	all_depth = numpy.hstack([v.depth.values.flatten() for v in data.values()])
+	depth_bin_max = int(numpy.quantile(all_depth, 0.99))
+	depth_bin = numpy.linspace(0, depth_bin_max, depth_bin_max + 1)
 
-		ds_res: dict[str] = {
-			"repl_group": repl_group,
-		}
-		for cfg in series_cfgs:
-			age_pred = pylib.age_pred_res.AgePredRes.from_txt(
-				f"data/{ds}/age_pred{cfg.path_suffix}.tsv"
-			)
-			ds_res[cfg.key] = age_pred.calc_stat(clocks, repl_group=repl_group)
+	hist_2d = dict[str, numpy.ndarray]()
+	for ds, v in data.items():
+		_hist, *_ = numpy.histogram2d(
+			v.beta.values.flatten(),
+			v.depth.values.flatten(),
+			bins=(beta_bin, depth_bin),
+			density=False,
+		)
+		hist_2d[ds] = _hist.astype(int)
 
-		ret[ds] = ds_res
+	# save as pickle
+	fname = "output/beta_vs_depth_hist_2d.pkl"
+	print(f"saving histogram matrix: {fname}", file=sys.stderr)
+	export = {
+		"beta_bin": beta_bin,
+		"depth_bin": depth_bin,
+		"hist_2d": hist_2d,
+	}
+	with open(fname, "wb") as fp:
+		pickle.dump(export, fp)
+
+	# normalize hist_2d
+	for ds, v in hist_2d.items():
+		hist_2d[ds] = v / v.sum()
+	all_hist_vals = numpy.hstack(list(hist_2d.values())).flatten()
+	hist_vmax = numpy.quantile(all_hist_vals, 0.99)
+
+	ret = {
+		"beta_bin": beta_bin,
+		"depth_bin": depth_bin,
+		"hist_2d": hist_2d,
+		"hist_vmax": hist_vmax,
+	}
 
 	return ret
 
 
 def setup_layout(n_datasets: int, ncols: int = 2) -> dict:
 	lc = mpllayout.LayoutCreator(
-		left_margin=1.0,
-		right_margin=2.0,
-		bottom_margin=0.7,
+		left_margin=0.7,
+		right_margin=0.2,
 		top_margin=0.5,
+		bottom_margin=0.7,
 	)
 
-	nrows = (n_datasets + ncols - 1) // ncols
+	heatmap_s = 3.0
+	heatmap_gap = 0.1
+	hist_d = heatmap_s / 4
+	block_s = heatmap_s + heatmap_gap + hist_d
+	block_gap = 0.6
+	cbar_gap_w = 0.3
+	cbar_w = 0.1
 
-	axes_s = 5.0
-	axes_gap_w = 0.8
-	axes_gap_h = 1.0
+	nrows = (n_datasets + ncols - 1) // ncols
 
 	for i in range(n_datasets):
 		ri = nrows - i // ncols - 1
 		ci = i % ncols
 
-		axes = lc.add_frame(f"axes_{i}")
-		axes.set_anchor("bottomleft", offsets=(
-			(axes_s + axes_gap_w) * ci,
-			(axes_s + axes_gap_h) * ri
+		heatmap = lc.add_frame(f"heatmap_{i}")
+		heatmap.set_anchor("bottomleft", offsets=(
+			(block_s + block_gap) * ci,
+			(block_s + block_gap) * ri,
 		))
-		axes.set_size(axes_s, axes_s)
+		heatmap.set_size(heatmap_s, heatmap_s)
+
+		beta = lc.add_frame(f"beta_{i}")
+		beta.set_anchor("bottomleft", heatmap, "topleft",
+			offsets=(0, heatmap_gap))
+		beta.set_size(heatmap_s, hist_d)
+
+		depth = lc.add_frame(f"depth_{i}")
+		depth.set_anchor("bottomleft", heatmap, "bottomright",
+		    offsets=(heatmap_gap, 0))
+		depth.set_size(hist_d, heatmap_s)
 
 	layout = lc.create_figure_layout()
 	layout["nrows"] = nrows
 	layout["ncols"] = ncols
-	layout["legend_axes_id"] = ncols - 1
 
 	return layout
 
 
-class ClockMarkerHandler(matplotlib.legend_handler.HandlerPathCollection):
-	def __init__(self, *ka, clock_cfgs: pylib.ClockCfgLib, **kw):
-		self.clock_cfgs = clock_cfgs
-		return super().__init__(*ka, **kw)
-
-	def create_artists(self, legend, orig_handle: matplotlib.collections.PathCollection,
-		xdescent: float, ydescent: float, width: float, height: float,
-		fontsize: float, transform
-	) -> list:
-		artists = super().create_artists(legend, orig_handle,
-			xdescent, ydescent, width, height, fontsize, transform)
-		# overlay text
-		s = self.clock_cfgs[orig_handle.get_label()].marker_char
-		fontsize = 5 + 2 / len(s)
-		t = matplotlib.text.Text(width / 2, height / 3, s,
-			fontsize=fontsize, color="#000000",
-			transform=transform, zorder=artists[0].zorder + 1,
-			path_effects=[
-				matplotlib.patheffects.Stroke(linewidth=1.5, foreground="#ffffff"),
-			],
-			horizontalalignment="center", verticalalignment="center",
-		)
-		artists.append(t)
-		t = matplotlib.text.Text(width / 2, height / 3, s,
-			fontsize=fontsize, color="#000000",
-			transform=transform, zorder=artists[0].zorder + 1,
-			horizontalalignment="center", verticalalignment="center",
-		)
-		artists.append(t)
-		return artists
-
-
-def plot_mae_err_scatter_dataset(axes: matplotlib.axes.Axes, *,
-	age_pred_stat: dict[str], clocks: list[str], clock_cfgs: pylib.ClockCfgLib,
-	series_cfgs: list[SeriesConfig], dataset_cfg: pylib.DatasetCfg,
-	add_legend: bool = False,
+def _plot_rep_beta_vs_depth(*,
+	heatmap_axes: matplotlib.axes.Axes,
+	beta_hist_axes: matplotlib.axes.Axes,
+	depth_hist_axes: matplotlib.axes.Axes,
+	hist_2d: numpy.ndarray,
+	beta_bin: numpy.ndarray,
+	depth_bin: numpy.ndarray,
+	heatmap_vmax: float = None,
+	dataset_cfg: pylib.DatasetCfg,
 ):
-	# extract data
-	plot_data = dict()
-	for s in series_cfgs:
-		plot_data[s.key] = {
-			"x": age_pred_stat[s.key]["mae"].values,
-			"y": age_pred_stat[s.key]["repl_mad"].values,
-		}
-	clock_handles = list()
-	for s in series_cfgs:
-		for c, x, y in zip(clocks, plot_data[s.key]["x"], plot_data[s.key]["y"]):
-			clock_cfg = clock_cfgs[c]
-			p = axes.scatter([x], [y], marker=s.marker, s=100, linewidths=0.5,
-				edgecolors="#000000", facecolors=clock_cfg.color,
-				label=clock_cfg.key,
-				zorder=(6 if s.key == "full" else 5),
-			)
-			if s.primary:
-				clock_handles.append(p)
-				# add clock text only for primary marker (legend)
-				mch = clock_cfgs[c].marker_char
-				fontsize = 5 + 2 / len(mch)
-				axes.text(x, y, mch, fontsize=fontsize, zorder=10,
-					path_effects=[
-						matplotlib.patheffects.Stroke(linewidth=1.5,
-						foreground="#ffffff"),
-					],
-					horizontalalignment="center", verticalalignment="center",
-				)
-				axes.text(x, y, mch, fontsize=fontsize, zorder=11,
-					horizontalalignment="center", verticalalignment="center",
-				)
-
-	# add annotation
-	for i, c in enumerate(clocks):
-		axes.annotate("",
-			xy=(plot_data[series_cfgs[1].key]["x"][i],
-				plot_data[series_cfgs[1].key]["y"][i],
-			),
-			xytext=(
-				plot_data[series_cfgs[0].key]["x"][i],
-				plot_data[series_cfgs[0].key]["y"][i],
-			),
-			xycoords=axes.transData, textcoords=axes.transData,
-			arrowprops=dict(arrowstyle="->", color=clock_cfgs[c].color,
-				shrinkA=6, shrinkB=6, linewidth=0.5),
-		)
-
-	if add_legend:
-		# imput legend
-		imput_handles = list()
-		for s in series_cfgs:
-			p = axes.scatter([], [], marker=s.marker, s=100, linewidths=0.5,
-				edgecolors="#000000", facecolors="#FFFFFF",
-				label=s.display_name,
-			)
-			imput_handles.append(p)
-		legend = axes.legend(handles=imput_handles,
-			loc=2, bbox_to_anchor=[1.02, 1.02], frameon=False,
-			handlelength=0.75, title="Imputation", title_fontsize=12,
-		)
-		axes.add_artist(legend)
-
-		# clock legend
-		handler_map = matplotlib.legend.Legend.get_default_handler_map().copy()
-		handler_map[matplotlib.collections.PathCollection] = ClockMarkerHandler(
-			clock_cfgs=clock_cfgs
-		)
-		legend = axes.legend(handles=clock_handles, handler_map=handler_map,
-			loc=2, bbox_to_anchor=[1.02, 0.82], frameon=False,
-			handlelength=0.75, title="Clocks", title_fontsize=12,
-		)
-
+	# plot heatmap
+	p = heatmap_axes.pcolor(beta_bin, depth_bin, hist_2d.T, cmap="viridis",
+		vmin=0, vmax=heatmap_vmax, rasterized=True,
+	)
+	# add dataset name as axes label and
+	s = dataset_cfg.display_name
+	heatmap_axes.text(0.05, 0.95, s,
+		fontsize=12, color="#ffffff", zorder=5, transform=heatmap_axes.transAxes,
+		horizontalalignment="left", verticalalignment="top",
+	)
 	# misc
-	axes.set_xlabel("MAE (years)")
-	axes.set_ylabel("RD (years)")
-	axes.set_title(dataset_cfg.display_name)
+	heatmap_axes.set_xlabel("Beta")
+	heatmap_axes.set_ylabel("Depth")
+
+	# plot beta curve
+	beta_hist_y = hist_2d.sum(axis=1)
+	beta_hist_x = (beta_bin[:-1] + beta_bin[1:]) / 2
+	beta_hist_axes.plot(beta_hist_x, beta_hist_y, linewidth=0.5,
+		color="#000000", zorder=6,
+	)
+	beta_hist_axes.fill_between(beta_hist_x, 0, beta_hist_y, zorder=5,
+		edgecolor="none", facecolor=dataset_cfg.color + "40",
+	)
+	beta_hist_axes.tick_params(
+		left=False, labelleft=False,
+		right=False, labelright=False,
+		bottom=False, labelbottom=False,
+		top=False, labeltop=False,
+	)
+	for sp in beta_hist_axes.spines.values():
+		sp.set_visible(False)
+	beta_hist_axes.set_xlim(*heatmap_axes.get_xlim())
+	beta_hist_axes.set_ylim(0, None)
+
+	# plot depth curve
+	depth_hist_x = hist_2d.sum(axis=0)
+	depth_hist_y = (depth_bin[:-1] + depth_bin[1:]) / 2
+	depth_hist_axes.plot(depth_hist_x, depth_hist_y, linewidth=0.5,
+		color="#000000", zorder=6)
+	depth_hist_axes.fill_betweenx(depth_hist_y, 0, depth_hist_x, zorder=5,
+		edgecolor="none", facecolor=dataset_cfg.color + "40",
+	)
+	depth_hist_axes.tick_params(
+		left=False, labelleft=False,
+		right=False, labelright=False,
+		bottom=False, labelbottom=False,
+		top=False, labeltop=False,
+	)
+	for sp in depth_hist_axes.spines.values():
+		sp.set_visible(False)
+	depth_hist_axes.set_xlim(0, None)
+	depth_hist_axes.set_ylim(*heatmap_axes.get_ylim())
 
 	return
 
 
 def _main():
-	# config
-	series_cfgs = [
-		SeriesConfig(key="raw", display_name="Not imputed",
-			path_suffix="", marker="o", primary=True),
-		SeriesConfig(key="imputed", display_name="Imputed (KNN)",
-			path_suffix=".imputed", marker="^"),
-	]
-
-	# below is order-related
+	# DATASETS is order-related
 	datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST", "RB_GALAXY", "RB_TWIST"]
 	n_datasets = len(datasets)
 
-	# load data
-	clocks = pylib.clock.load_clocks()
-	clocks = [c for c in clocks if c not in {"altumage"}]
-	clock_cfgs = pylib.ClockCfgLib.from_json()
-	data = _load_and_prep_data(datasets, clocks, series_cfgs)
+	# loading data
+	data = {ds: pylib.dataset.RawBetaDepth.load_dataset(ds) for ds in datasets}
+
+	# dataset appearance configs
 	dataset_cfgs = pylib.DatasetCfgLib.from_json()
 
-	layout = setup_layout(n_datasets)
+	# calculate stats for heatmap plotting
+	heatmap_data = _prep_heatmap_data(data)
+
+	layout = setup_layout(n_datasets=n_datasets, ncols=2)
 	figure = layout["figure"]
 
 	for i, ds in enumerate(datasets):
-		plot_mae_err_scatter_dataset(layout[f"axes_{i}"],
-			age_pred_stat=data[ds],
-			clocks=clocks,
-			clock_cfgs=clock_cfgs,
-			series_cfgs=series_cfgs,
+		p = _plot_rep_beta_vs_depth(
+			heatmap_axes=layout[f"heatmap_{i}"],
+			beta_hist_axes=layout[f"beta_{i}"],
+			depth_hist_axes=layout[f"depth_{i}"],
+			hist_2d=heatmap_data["hist_2d"][ds],
+			beta_bin=heatmap_data["beta_bin"],
+			depth_bin=heatmap_data["depth_bin"],
+			heatmap_vmax=heatmap_data["hist_vmax"],
 			dataset_cfg=dataset_cfgs[ds],
-			add_legend=(i == layout["legend_axes_id"])
 		)
 
 	figure.savefig("fig_s12.svg", dpi=600)
+	figure.savefig("fig_s12.png", dpi=600)
+	figure.savefig("fig_s12.pdf", dpi=600)
 	matplotlib.pyplot.close(figure)
 	return
 
 
 if __name__ == "__main__":
-	_main()
+	with threadpoolctl.threadpool_limits(limits=24, user_api="blas"):
+		_main()

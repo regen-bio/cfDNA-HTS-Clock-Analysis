@@ -10,6 +10,7 @@ import pickle
 import matplotlib
 import matplotlib.axes
 import matplotlib.figure
+import matplotlib.lines
 import matplotlib.patches
 import matplotlib.patheffects
 import matplotlib.pyplot
@@ -107,13 +108,13 @@ def prep_full_imput_age_predict_stat(datasets: list[str], clocks: list[str]
 		repl_group = pylib.dataset.ReplGroup.load_dataset(ds)
 
 		# read the pred without imputation
-		fname = f"data/{ds}/age_pred.tsv"
+		fname = f"data/{ds}/final.full.age_pred.tsv"
 		ds_val["plain"] = _prep_age_predict_stat(
 			pandas.read_csv(fname, sep="\t", index_col=0), repl_group, clocks,
 		)
 
 		# load the pred with imputation
-		with open(f"age_predict_with_imput_depth/{ds}.pkl", "rb") as fp:
+		with open(f"data/{ds}/final.filtered.age_pred.imput_depth.pkl", "rb") as fp:
 			imput_res = pickle.load(fp)
 		ds_val["imput"] = {k: _prep_age_predict_stat(v, repl_group, clocks)
 			for k, v in imput_res.items()
@@ -182,7 +183,7 @@ def setup_layout(ill_surv_datasets: list[str],
 	)
 
 	imput_impact_w = 2.6
-	imput_impact_h = 1.2
+	imput_impact_h = 1.0
 	imput_impact_gap_w = 0.6
 	imput_impact_gap_h = 0.0
 	imput_top_gap_h = 0.8
@@ -194,7 +195,6 @@ def setup_layout(ill_surv_datasets: list[str],
 
 	clock_cov_w = 2.6
 	clock_cov_h = 0.5 * len(ill_surv_datasets)
-	clock_cov_top_gap_h = 1.2
 	clock_cov_extra_offset_h = 0.5
 
 	# imput impact
@@ -234,9 +234,360 @@ def setup_layout(ill_surv_datasets: list[str],
 	)
 	clock_cov.set_size(clock_cov_w, clock_cov_h)
 
+	# downsampling
+	dsamp_w = 2.4
+	dsamp_h = 1.5
+
+	dsamp_mae = lc.add_frame("dsamp_mae")
+	dsamp_mae.set_anchor("bottomleft", clock_cov, "topleft",
+		offsets=(0.0, 0.6))
+	dsamp_mae.set_size(dsamp_w, dsamp_h)
+
+	dsamp_perc_20x = lc.add_frame("dsamp_perc_20x")
+	dsamp_perc_20x.set_anchor("bottomleft", dsamp_mae, "bottomright",
+		offsets=(0.6, 0.0))
+	dsamp_perc_20x.set_size(dsamp_w, dsamp_h)
+
 	layout = lc.create_figure_layout()
 
 	return layout
+
+
+def _plot_downsample(layout: dict[str], clocks: list[str], *,
+	highlight_clocks: list[str] = None,
+	skip: bool = False,
+) -> None:
+	if skip:
+		pylib.logger.info("skipping plotting downsample")
+		return
+
+	if highlight_clocks is None:
+		highlight_clocks = list()
+
+	# load data
+	pred_mae = pandas.read_csv("df_mae_single_models.csv",
+		index_col=0)
+	clocks = pred_mae.columns.intersection(clocks).tolist()
+	# clocks = pylib.clock.load_clocks(exclude={"altumage"})
+	clock_cfgs = pylib.clock_cfg.ClockCfgLib.from_json()
+	with open("dict_ratio_20X.pkl", "rb") as fp:
+		frac_20x_sites = pickle.load(fp)
+
+	# plot mae line
+	imput_y_list = list()
+	axes: matplotlib.axes.Axes = layout["dsamp_mae"]
+	x = pred_mae.index.values
+	for c in clocks:
+		clock_cfg = clock_cfgs[c]
+		y = pred_mae[c].values
+		mask = numpy.isfinite(y)
+		y = numpy.interp(x, x[mask], y[mask], left=numpy.nan)
+		imput_y_list.append(y)
+		if c in highlight_clocks:
+			color = clock_cfg.color
+			zorder = 11
+		else:
+			color = "#c0c0c0"
+			zorder = 10
+		# line
+		axes.plot(x, y, linewidth=1.0, color=color, zorder=zorder)
+	# mean line
+	axes.plot(x, numpy.nanmean(imput_y_list, axis=0),
+		linewidth=2.0, color="#000000", zorder=20,
+	)
+
+	# misc
+	axes.grid(linewidth=0.5, color="#d0d0d0")
+	axes.set_xlabel("Downsampling depth", fontsize=10)
+	axes.set_ylabel("MAE (years)", fontsize=10)
+
+	# plot frac 20x
+	y_mean_list = list()
+	axes: matplotlib.axes.Axes = layout["dsamp_perc_20x"]
+	axes.sharex(layout["dsamp_mae"])
+	for c in clocks:
+		clock_cfg = clock_cfgs[c]
+
+		mask = numpy.isfinite(pred_mae[c].values)
+		xv_dict = frac_20x_sites[c]
+		keys = sorted(xv_dict.keys())
+		x = pred_mae.index.values[mask][keys]
+		y_mean = numpy.asarray([numpy.mean(xv_dict[k]) for k in keys]) * 100
+		y_mean_list.append(y_mean)
+		if c in highlight_clocks:
+			color = clock_cfg.color
+			zorder = 11
+		else:
+			color = "#c0c0c0"
+			zorder = 10
+		# line
+		axes.plot(x, y_mean, linewidth=1.0, color=color, zorder=zorder)
+	# mean line
+	mean_all = numpy.nanmean(numpy.asarray(y_mean_list), axis=0)
+	axes.plot(x, mean_all, linewidth=2.0, color="#000000", zorder=20)
+
+	# legend
+	handles = [
+		matplotlib.lines.Line2D([], [], color="#000000", linewidth=2.0,
+			label="Mean of\n20 HCRL clocks"),
+	]
+	for c in highlight_clocks:
+		clock_cfg = clock_cfgs[c]
+		handles.append(
+			matplotlib.lines.Line2D([], [], color=clock_cfg.color, linewidth=1.0,
+				label=clock_cfg.key),
+		)
+	if (len(highlight_clocks) < len(clocks)):
+		if (len(highlight_clocks) > 0):
+			handles.append(
+				matplotlib.lines.Line2D([], [], color="#c0c0c0", linewidth=1.0,
+					label="Other HCRL clocks"),
+			)
+		else:
+			handles.append(
+				matplotlib.lines.Line2D([], [], color="#c0c0c0", linewidth=1.0,
+					label="Per HCRL clock"),
+			)
+
+	legend = axes.legend(handles=handles, loc=6, bbox_to_anchor=(1.02, 0.50),
+		handlelength=1.0, ncol=1, frameon=False, fontsize=8,
+	)
+	# misc
+	axes.grid(linewidth=0.5, color="#d0d0d0")
+	axes.set_xlabel("Downsampling depth", fontsize=10)
+	axes.set_ylabel(r"CpG coverage $\geq$20X (%)", fontsize=10)
+
+	return
+
+
+def _beta_distr_density_hist(values: numpy.ndarray, pos: numpy.ndarray,
+) -> numpy.ndarray:
+	values = values[numpy.isfinite(values)]
+	if (len(values) == 0) or (len(pos) == 0):
+		return numpy.zeros(len(pos), dtype=float)
+	elif len(pos) == 1:
+		hist = numpy.full(1, len(values), dtype=int)
+	else:
+		edges = numpy.empty(len(pos) + 1, dtype=float)
+		edges[1:-1] = (pos[:-1] + pos[1:]) / 2
+		edges[0] = pos[0] - (pos[1] - pos[0]) / 2
+		edges[-1] = pos[-1] + (pos[-1] - pos[-2]) / 2
+		hist = numpy.histogram(values, bins=edges)[0]
+	# normalize
+	density = hist / hist.sum()
+	return density
+
+
+def _plot_curve_area(axes: matplotlib.axes.Axes,
+	x: numpy.ndarray, y: numpy.ndarray, *,
+	color: str,
+	base: float = 0.0,
+):
+	y /= y.max()
+	axes.plot(x, y + base, clip_on=False, linewidth=1.0, color=color, zorder=5)
+	axes.fill_between(x, base, y + base, clip_on=False, edgecolor="none",
+		facecolor=color + "40", zorder=4,
+	)
+	axes.axhline(base, linewidth=0.5, color=color, zorder=5)
+	return
+
+
+def _plot_ill_cpg_stat_panel_dist(axes: matplotlib.axes.Axes, *,
+	beta: pandas.DataFrame,
+	dataset_cfg: pylib.DatasetCfg,
+	connect_axes: matplotlib.axes.Axes,
+	granualrity: int = 100,
+	show_xlabel: bool = False,
+):
+	pos = numpy.linspace(0, 1, granualrity)
+	values = beta.values.flatten()
+	# density = _beta_distr_density_hist(values, pos)
+	density = _beta_distr_density_hist(values, pos)
+
+	# plot full value curve
+	_plot_curve_area(axes, pos, density, color=dataset_cfg.color, base=0.0)
+
+	# add red boxes
+	for v in [0, -1]:
+		p = matplotlib.patches.Rectangle((pos[v] - 0.02, -0.08),
+			0.04, density[v] + 0.16,
+			clip_on=False, zorder=6, linestyle="--", linewidth=0.7,
+			edgecolor="#ff0000c0", facecolor="none",
+		)
+		axes.add_patch(p)
+
+	axes.text(0.95, 0.97, dataset_cfg.display_name,
+		transform=axes.transAxes, zorder=10,
+		horizontalalignment="right", verticalalignment="top",
+	)
+
+	# add connections
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[0] + 0.02, -0.08), coordsA=axes.transData,
+		xyB=(pos[-1] - 0.02, -0.08), coordsB=axes.transData,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[0] + 0.02, density[0] + 0.08), coordsA=axes.transData,
+		xyB=(pos[-1] - 0.02, density[-1] + 0.08), coordsB=axes.transData,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[-1] + 0.02, -0.08), coordsA=axes.transData,
+		xyB=(-0.04, -0.04), coordsB=connect_axes.transAxes,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[-1] + 0.02, density[-1] + 0.08), coordsA=axes.transData,
+		xyB=(-0.04, 1.04), coordsB=connect_axes.transAxes,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+
+	# misc
+	axes.tick_params(
+		left=False, labelleft=False,
+	)
+	axes.grid(axis="x", color="#e0e0e0")
+	if show_xlabel:
+		axes.set_xlabel("Beta")
+	axes.set_ylabel("P.D.")
+
+	return
+
+
+def _plot_ill_cpg_stat_ill_dist(axes: matplotlib.axes.Axes, *,
+	beta: pandas.DataFrame,
+	depth: pandas.DataFrame,
+	depth_cate_list: list[int | tuple[int]],
+	show_xlabel: bool = False,
+	add_legend: bool = False,
+):
+	cmap = matplotlib.colormaps["viridis"]
+	beta = beta.values
+	depth = depth.values
+
+	# extract depths of ill cpgs
+	mask = (beta == 0) | (beta == 1)
+	ill_depth_count = collections.Counter(depth[mask].flatten())
+	ill_depth_total = ill_depth_count.total()
+
+	# count depth in each category
+	cate_depth = list[list]()
+	for d in depth_cate_list:
+		if isinstance(d, int):
+			cate_depth.append(ill_depth_count[d])
+		else:
+			cate_depth.append(sum(ill_depth_count[i]
+				for i in range(d[0], d[1] + 1)))
+	cate_total = sum(cate_depth)
+
+	# plot for each names depth
+	cur_theta = -(cate_total / ill_depth_total * 180)
+	handles = list()
+	for i, d in enumerate(cate_depth):
+		_theta = d / ill_depth_total * 360
+		facecolor = cmap((i + 1) / len(depth_cate_list))
+		if isinstance(cate := depth_cate_list[i], int):
+			label = "0/Miss." if cate == 0 else str(cate)
+		else:
+			label = f"{cate[0]}-{cate[1]}"
+		# pyplot
+		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
+			clip_on=False, label=label, zorder=5, linewidth=0.5,
+			edgecolor="#ffffff", facecolor=facecolor,
+		)
+		axes.add_patch(p)
+		cur_theta += _theta
+		handles.append(p)
+
+	# add other if necessary
+	if cate_total < ill_depth_total:
+		_theta = (ill_depth_total - cate_total) / ill_depth_total * 360
+		if isinstance(cate := depth_cate_list[-1], int):
+			label = f"> {cate}"
+		else:
+			label = f"> {cate[1]}"
+		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
+			clip_on=False, label=label, zorder=5, linewidth=0.5,
+			edgecolor="#ffffff", facecolor="#d0d0d0",
+		)
+		axes.add_patch(p)
+		handles.append(p)
+
+	# add center circle and text
+	p = matplotlib.patches.Circle((0, 0), 0.5, clip_on=False, edgecolor="none",
+		facecolor="#ffffff", zorder=10)
+	axes.add_patch(p)
+	axes.text(0, 0,
+		f"{ill_depth_total / beta.shape[0] / beta.shape[1] * 100:.1f}%",
+		fontweight="bold", zorder=11,
+		horizontalalignment="center", verticalalignment="center",
+	)
+
+	# add a 3-side box to complete the connection
+	line = matplotlib.lines.Line2D([-0.04, 1.04, 1.04, -0.04],
+		[-0.04, -0.04, 1.04, 1.04], clip_on=False, transform=axes.transAxes,
+		linestyle="-", linewidth=1.0, color="#ff000080"
+	)
+	axes.add_artist(line)
+
+	# legend
+	if add_legend:
+		axes.legend(handles=handles, loc=1, bbox_to_anchor=[1.02, -0.36],
+			frameon=True, handlelength=0.75, ncol=3,  # title="Depth",
+			fontsize=10,
+		)
+
+	# misc
+	for sp in axes.spines.values():
+		sp.set_visible(False)
+	axes.tick_params(
+		left=False, labelleft=False,
+		right=False, labelright=False,
+		bottom=False, labelbottom=False,
+		top=False, labeltop=False,
+	)
+	if show_xlabel:
+		axes.set_xlabel("Depths of\n0&1 betas")
+
+	axes.set_xlim(-1, 1)
+	axes.set_ylim(-1, 1)
+	return
+
+
+def _plot_ill_cpg_stat(*,
+	panel_dist_axes: matplotlib.axes.Axes,
+	ill_dist_axes: matplotlib.axes.Axes,
+	data: dict[str, pandas.DataFrame],
+	dataset_cfgs: pylib.DatasetCfgLib,
+	depth_cate_list: list[int],
+	show_xlabel: bool = False,
+	add_ill_dist_legend: bool = False,
+):
+	# extract data
+	beta = data["beta"]
+	depth = data["depth"]
+
+	# plot beta value distribution of full panel
+	_plot_ill_cpg_stat_panel_dist(panel_dist_axes,
+		beta=beta, dataset_cfgs=dataset_cfgs,
+		show_xlabel=show_xlabel,
+		connect_axes=ill_dist_axes,
+	)
+
+	# plot depth distribution of ill cpgs
+	_plot_ill_cpg_stat_ill_dist(ill_dist_axes,
+		beta=beta, depth=depth,
+		depth_cate_list=depth_cate_list,
+		add_legend=add_ill_dist_legend,
+		show_xlabel=show_xlabel,
+	)
+
+	return
 
 
 def _plot_clock_affected_cpg_frac(axes: matplotlib.axes.Axes, data: dict[str, dict], *,
@@ -286,11 +637,17 @@ def _plot_clock_affected_cpg_frac(axes: matplotlib.axes.Axes, data: dict[str, di
 
 
 def _plot_ill_cpg_survey(layout: dict, datasets: list[str], clocks: list[str],
-	dataset_cfgs: pylib.DatasetCfgLib,
+	dataset_cfgs: pylib.DatasetCfgLib, *,
+	skip: bool = False,
 ):
+	if skip:
+		pylib.logger.info("skipping plotting ill cpg survey")
+		return
+
 	# load beta and depth
 	data = load_ill_cpg_surv_data("ill_cpg_stat.json")
 
+	# plot
 	_plot_clock_affected_cpg_frac(layout["clock_cov_ill"], data,
 		clocks=clocks, dataset_cfgs=dataset_cfgs, datasets=datasets,
 		box_color="#c0c0c0",
@@ -366,6 +723,8 @@ def _imput_impact_sig_test(base_vals: numpy.ndarray,
 	n_data = len(imput_data)
 	pvalues = numpy.empty(n_data, dtype=float)
 	for i, k in enumerate(keys):
+		# pvalues[i] = scipy.stats.ttest_ind(base_vals, imput_data[k],
+		# equal_var=False, alternative="two-sided").pvalue
 		pvalues[i] = _permutation_test(base_vals, imput_data[k],
 			alternative="two-sided")[0]
 
@@ -558,7 +917,11 @@ def _plot_ill_cpg_imput_impact(layout: dict, datasets: list[str], *,
 	imput_impact_cfgs: list[dict[str, str]], imput_cfgs: list[ImputCfg],
 	clocks: list[str], dataset_cfgs: pylib.DatasetCfgLib,
 	depth: int = 0,
+	skip: bool = False,
 ):
+	if skip:
+		return
+
 	# prepare data
 	full_stat = prep_full_imput_age_predict_stat(datasets, clocks)
 	# full-scale significance test with b-h procesdure
@@ -615,6 +978,8 @@ def _plot_ill_cpg_imput_impact(layout: dict, datasets: list[str], *,
 def _main():
 	# configs
 	datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST", "RB_GALAXY", "RB_TWIST"]
+	# ill_surv_datasets = datasets
+	# ill_surv_datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST"]  # order-related
 	ill_surv_datasets = datasets
 	imput_impact_cfgs = [
 		ImputImpactCfg(key="mae", display_name="MAE", unit="years"),
@@ -638,11 +1003,17 @@ def _main():
 		imput_impact_datasets=datasets,
 		imput_impact_cfgs=imput_impact_cfgs,
 	)
-	figure = layout["figure"]
+	figure: matplotlib.figure.Figure = layout["figure"]
+
+	_plot_downsample(layout, clocks=clocks,
+		# highlight_clocks=["horvath2013", "dnamphenoage", "zhangblup"],
+		skip=False,
+	)
 
 	_plot_ill_cpg_survey(layout, ill_surv_datasets,
 		clocks=clocks,
-		dataset_cfgs=dataset_cfgs
+		dataset_cfgs=dataset_cfgs,
+		skip=False,
 	)
 
 	_plot_ill_cpg_imput_impact(layout, datasets=datasets,
@@ -651,9 +1022,12 @@ def _main():
 		clocks=clocks,
 		dataset_cfgs=dataset_cfgs,
 		depth=0,
+		skip=False,
 	)
 
 	figure.savefig("fig_4.svg", dpi=600)
+	figure.savefig("fig_4.png", dpi=600)
+	figure.savefig("fig_4.pdf", dpi=600)
 	matplotlib.pyplot.close(figure)
 
 	return

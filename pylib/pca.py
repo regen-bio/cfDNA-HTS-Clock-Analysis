@@ -32,7 +32,7 @@ def load_n_components_list(fname: str = None, *,
 	return ret
 
 
-def load_pca_models(dirname: str = "pca",
+def load_pca_models(dirname: str = "pca_res",
 	n_components_list: list[int] = None, *,
 	cache_prefix: str = util.DEFAULT_CACHE_PREFIX,
 ) -> dict[int]:
