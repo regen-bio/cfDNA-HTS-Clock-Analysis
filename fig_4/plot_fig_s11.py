@@ -1,356 +1,367 @@
 #!/usr/bin/env python3
 
-import collections
+import dataclasses
 import json
+import typing
+
 import matplotlib
-import matplotlib.pyplot
 import matplotlib.axes
-import matplotlib.colors
+import matplotlib.lines
 import matplotlib.patches
+import matplotlib.pyplot
 import mpllayout
 import numpy
-import os
-import pandas
+import threadpoolctl
 
 import pylib
 
 
-def setup_layout(nrows: int, ncols: int, *, dpi: int = 300) -> int:
+@dataclasses.dataclass
+class DepthCateCfg(object):
+	dmin: int = None
+	dmax: int = None
+
+	def __post_init__(self):
+		if self.dmin is not None and self.dmax is not None and self.dmin > self.dmax:
+			raise ValueError("Invilid depth range")
+		return
+
+	@property
+	def display_name(self) -> str:
+		if self.dmin == self.dmax == 0:
+			ret = "0/Missing"
+		elif self.dmin == self.dmax:
+			ret = str(self.dmin)
+		elif self.dmin is None:
+			ret = f"$\\leq$ {self.dmax}"
+		elif self.dmax is None:
+			ret = f"$\\geq$ {self.dmin}"
+		else:
+			ret = f"{self.dmin}-{self.dmax}"
+		return ret
+
+	def __contains__(self, value: int) -> bool:
+		if self.dmin is None:
+			ret = value <= self.dmax
+		elif self.dmax is None:
+			ret = self.dmin <= value
+		else:
+			ret = self.dmin <= value <= self.dmax
+		return ret
+
+	def count_from(self, depth_count: dict[int, int]) -> int:
+		return sum(v for k, v in depth_count.items() if k in self)
+
+
+def load_ill_cpg_surv_data(fname: str) -> dict[str, dict]:
+	with open(fname, "r") as fp:
+		ret: dict[str] = json.load(fp)
+	# convert ill_depth_count keys from str to int
+	for v in ret.values():
+		v["ill_depth_count"] = {int(k): val
+			for k, val in v["ill_depth_count"].items()}
+	return ret
+
+
+def setup_layout(datasets: list[str], ncols: int = 2) -> dict:
 	lc = mpllayout.LayoutCreator(
-		left_margin=1.2,
-		right_margin=0.5,
-		top_margin=0.5,
-		bottom_margin=0.7,
+		left_margin=0.8,
+		right_margin=0.2,
+		top_margin=0.4,
+		bottom_margin=1.5,
 	)
+	n_datasets = len(datasets)
+	nrows = (n_datasets + ncols - 1) // ncols
 
-	grid_w = ncols * 0.2
-	grid_h = nrows * 0.2
+	# clock_cov_w = 3.4
+	# clock_cov_h = 0.4 * n_datasets
+	# clock_cov_top_gap_h = 0.8
+	# clock_cov_offset_x = 0.5
 
-	grid = lc.add_frame("grid")
-	grid.set_size(grid_w, grid_h)
-	grid.set_anchor("bottomleft")
+	panel_dist_w = 1.8
+	panel_dist_h = 0.7
+	panel_dist_gap_w = 0.2
+	ill_dist_s = 0.9
 
-	hist_top = lc.add_frame("hist_top")
-	hist_top.set_anchor("bottomleft", grid, "topleft", offsets=(0, 0.05))
-	hist_top.set_size(grid_w, 1.2)
+	block_w = panel_dist_w + panel_dist_gap_w + ill_dist_s
+	block_h = max(panel_dist_h, ill_dist_s)
+	block_gap_w = 1.0
+	block_gap_h = 0.7
 
-	hist_right = lc.add_frame("hist_right")
-	hist_right.set_anchor("bottomleft", grid, "bottomright", offsets=(0.1, 0))
-	hist_right.set_size(2.0, grid_h)
+	# ill cpg clock coverate
+	# clock_cov = lc.add_frame("clock_cov_ill")
+	# clock_cov.set_anchor("bottomleft", offsets=(clock_cov_offset_x, 0))
+	# clock_cov.set_size(clock_cov_w, clock_cov_h)
+
+	# axes complex of distr curve and pie
+	for i, v in enumerate(datasets):
+		ri = nrows - (i // ncols) - 1
+		ci = i % ncols
+
+		panel_dist = lc.add_frame(f"{v}_panel_dist")
+		panel_dist.set_anchor("bottomleft",
+			offsets=(
+				(block_w + block_gap_w) * ci,
+				(block_h + block_gap_h) * ri,
+			)
+		)
+		panel_dist.set_size(panel_dist_w, panel_dist_h)
+
+		ill_dist = lc.add_frame(f"{v}_ill_dist")
+		ill_dist.set_anchor("topleft",
+			ref_frame=panel_dist,
+			ref_anchor="topright",
+			offsets=(panel_dist_gap_w, 0)
+		)
+		ill_dist.set_size(ill_dist_s, ill_dist_s)
 
 	layout = lc.create_figure_layout()
-	figure = layout["figure"]
-	figure.set(dpi=dpi)
+	layout["nrows"] = nrows
+	layout["ncols"] = ncols
+
 	return layout
 
 
-def _overlay_shrinked_rectangle(
-	axes: matplotlib.axes.Axes,
-	rect_list: list[matplotlib.patches.Rectangle],
-	shrink: float = 1,  # in points
-	**kw,
-) -> list[matplotlib.patches.Rectangle]:
-	#
-	shrink_px = shrink * axes.figure.dpi / 72  # convert points to pixels
-	trans_data = axes.transData
-
-	ret = list()
-	for rect in rect_list:
-		xy, w, h = rect.get_xy(), rect.get_width(), rect.get_height()
-		assert w > 0 and h > 0
-		# transform xy to the figure coordinates
-		s_xy = trans_data.inverted().transform(
-			trans_data.transform(xy) + shrink_px
-		)
-		s_w = w - (s_xy[0] - xy[0]) * 2
-		s_h = h - (s_xy[1] - xy[1]) * 2
-
-		# create patch and add to axes
-		p = matplotlib.patches.Rectangle(s_xy, s_w, s_h, **kw)
-		axes.add_patch(p)
-		ret.append(p)
-
-	return ret
-
-
-def _hbar_step(
-	axes: matplotlib.axes.Axes,
-	x: numpy.ndarray,
-	y: numpy.ndarray,
-	**kw,
-) -> matplotlib.lines.Line2D:
-	assert len(y) == len(x) + 1
-	path_x, path_y = list(), list()
-	for i in range(len(x)):
-		path_x.extend([x[i], x[i]])
-		path_y.extend([y[i], y[i + 1]])
-
-	line = matplotlib.lines.Line2D(path_x, path_y, **kw)
-	axes.add_line(line)
-	return line
-
-
-def _suffix_formatter_func(v: float, pos: int) -> str:
-	if v >= 1e6:
-		ret = f"{round(v / 1e6)}M"
-	elif v >= 1e3:
-		ret = f"{round(v / 1e3)}K"
-	else:
-		ret = f"{int(v)}"
-	return ret
-
-
-def plot_ill_cpg_stat(
-	grid: matplotlib.axes.Axes,
-	hist_top: matplotlib.axes.Axes,
-	hist_right: matplotlib.axes.Axes,
-	ill_cpg: pandas.DataFrame,
-	ncols: int = 20,
-	legend_title: str = None,
+def _plot_curve_area(axes: matplotlib.axes.Axes,
+	x: numpy.ndarray, y: numpy.ndarray, *,
+	color: str,
+	base: float = 0.0,
 ):
-	# data preparation
-	subj = ill_cpg.index.to_list()
-	ncpg = ill_cpg.shape[1]
-	nrows = len(subj)
-	assert nrows < 32
-	# calculate share patten between subjects
-	basis = 2 ** numpy.arange(nrows).astype(int)
-	# count patterns
-	pat_count = collections.Counter(
-		(basis.reshape(1, -1) @ ill_cpg.values).squeeze()
+	y /= y.max()
+	axes.plot(x, y + base, clip_on=False, linewidth=1.0, color=color, zorder=5)
+	axes.fill_between(x, base, y + base, clip_on=False, edgecolor="none",
+		facecolor=color + "40", zorder=4,
 	)
-	sorted_pat = pat_count.most_common()
+	axes.axhline(base, linewidth=0.5, color=color, zorder=5)
+	return
 
-	# column colors
-	col_colors = [dict(facecolor=matplotlib.colors.to_hex(c), edgecolor="none")
-		for c in matplotlib.colormaps["turbo"](numpy.linspace(0, 1, ncols))
-	]
-	# shuffle the colors
-	numpy.random.seed(0)
-	col_colors = numpy.random.permutation(col_colors).tolist()
 
-	# suffix formatter
-	suffix_formatter = matplotlib.ticker.FuncFormatter(_suffix_formatter_func)
+def _plot_ill_cpg_stat_panel_dist(axes: matplotlib.axes.Axes, data: dict[str], *,
+	dataset_cfg: pylib.DatasetCfg,
+	connect_axes: matplotlib.axes.Axes,
+):
+	edges = numpy.array(data["beta_hist_bins"])
+	pos = (edges[:-1] + edges[1:]) / 2
+	density = numpy.array(data["beta_hist"])
 
-	# plot grid
-	pat_0_idx = None  # the index of 0, leave None if not found in first-ncols
-	circ_r = 0.3
-	line_hw = 0.07
-	wpad = 0.1
-	for col_i, pat in zip(range(ncols), map(lambda x: x[0], sorted_pat)):
-		if pat == 0:
-			# record the index only
-			# don't plot anything except a white column
-			pat_0_idx = col_i
-			p = matplotlib.patches.Rectangle((col_i, 0), 1, nrows,
-				facecolor="#ffffff", edgecolor="none", zorder=2)
-			grid.add_patch(p)
-			# update col colors
-			# pat_0_idx_color = col_colors[col_i]["facecolor"]
-			col_colors[pat_0_idx]["facecolor"] = "#ff9d4d"
-			continue
-		# plot based on pattern
-		color = col_colors[col_i]
-		ymin, ymax = numpy.nan, numpy.nan
-		for row_i, b in enumerate(basis):
-			circ_xy = (col_i + 0.5, row_i + 0.5)
-			if pat & b:
-				# plot black dot
-				p = matplotlib.patches.Circle(circ_xy, circ_r, **color, zorder=4)
-				grid.add_patch(p)
-				ymin = numpy.nanmin([ymin, row_i])  # for line plot later
-				ymax = numpy.nanmax([ymax, row_i])  # for line plot later
-			# plot white, larger dot
-			p = matplotlib.patches.Circle(circ_xy, circ_r + wpad,
-				facecolor="#ffffff", edgecolor="none", zorder=2)
-			grid.add_patch(p)
-		if numpy.isfinite(ymin):
-			p = matplotlib.patches.Rectangle(
-				(col_i + 0.5 - line_hw, ymin + 0.5), line_hw * 2, ymax - ymin,
-				**color, zorder=4)
-			grid.add_patch(p)
-		p = matplotlib.patches.Rectangle(
-			(col_i + 0.5 - line_hw - wpad, 0.5), (line_hw + wpad) * 2,
-			nrows - 1, facecolor="#ffffff", edgecolor="none", zorder=2)
-		grid.add_patch(p)
-	# add a box for all non-zero patterns
-	valid_cols = numpy.asarray([i for i in range(ncols) if i != pat_0_idx])
-	p = matplotlib.patches.Rectangle((valid_cols.min(), 0),
-		valid_cols.max() - valid_cols.min() + 1, nrows,
-		clip_on=False, facecolor="none", edgecolor="#404040", zorder=3)
-	grid.add_patch(p)
-	# misc
-	for sp in grid.spines.values():
-		sp.set_visible(False)
-	grid.tick_params(
-		left=False, labelleft=True,
-		right=False, labelright=False,
-		bottom=False, labelbottom=False,
-		top=False, labeltop=False,
-	)
-	grid.set_facecolor("#f0f0f0")
-	grid.set_xlim(0, ncols)
-	grid.set_ylim(0, len(basis))
-	grid.set_yticks(numpy.arange(nrows) + 0.5, labels=subj)
+	# plot full value curve
+	_plot_curve_area(axes, pos, density, color=dataset_cfg.color, base=0.0)
 
-	# plot top histogram
-	y = numpy.asarray([v[1] for v in sorted_pat[:ncols]])
-	x = numpy.arange(ncols) + 0.5
-	hist = hist_top.bar(x, y, width=0.9, facecolor="#404040", edgecolor="none")
-	hist_top.set_xlim(0, ncols)
-	hist_top.set_ylim(0, y.max())
-	# mark the 0 pattern
-	if pat_0_idx is not None:
-		color = col_colors[pat_0_idx]
-		hist[pat_0_idx].set(
-			facecolor=color["facecolor"],
-			edgecolor=color["edgecolor"],
-			zorder=2,
+	# add red boxes
+	for v in [0, -1]:
+		p = matplotlib.patches.Rectangle((pos[v] - 0.02, -0.08),
+			0.04, density[v] + 0.16,
+			clip_on=False, zorder=6, linestyle="--", linewidth=0.7,
+			edgecolor="#ff0000c0", facecolor="none",
 		)
-	# misc
-	for sp in hist_top.spines.values():
-		sp.set_visible(False)
-	hist_top.tick_params(
-		left=True, labelleft=True,
-		right=False, labelright=False,
-		bottom=False, labelbottom=False,
-		top=False, labeltop=False,
-	)
-	hist_top.set_ylabel("CpG counts")
-	hist_top.yaxis.set_major_formatter(suffix_formatter)
+		axes.add_patch(p)
 
-	# plot right horizontal histogram as stacked bars
-	hist_right.set_xlim(0, ncpg)
-	hist_right.set_ylim(0, nrows)
-	left = numpy.zeros(nrows, dtype=float)
-	y = numpy.arange(nrows) + 0.5
-	for color, (pat, count) in zip(col_colors, sorted_pat):
-		# should plot pat = 0 for all rows
-		w = [(count if (pat & b) else 0) for b in basis]
-		hist_right.barh(y, w, left=left, height=0.9, **color, zorder=2)
-		left += w
-	# stack up to total ill
-	total_ill = ill_cpg.sum(axis=1).values
-	hist_right.barh(y, total_ill - left, left=left, height=0.9,
-		facecolor="#f0f0f0", edgecolor="none", zorder=2)
-	left = total_ill
-	_hbar_step(hist_right, left, numpy.arange(nrows + 1),
-		color="#404040", linewidth=1.0, zorder=3)
-	# stack up to per sample clean
-	w = ncpg - pat_count.get(0, 0) - left
-	hist_right.barh(y, w, left=left, height=0.9,
-		facecolor="#ffdcc0", edgecolor="none", zorder=2)
-	left = ncpg - pat_count.get(0, 0)
-	# stack up to total cpg
-	if 0 in pat_count:
-		hist = hist_right.barh(y, pat_count[0], left=left, height=0.9,
-			facecolor="#ff9d4d", edgecolor="none", zorder=2)
-	# add some lines and labels
-	for x in [0, total_ill[-1], ncpg]:
-		hist_right.plot([x, x], [nrows + 0.5, nrows + 1.25], clip_on=False,
-			linewidth=1.0, color="#404040")
-	hist_right.text(total_ill[-1] / 2, nrows + 0.75, "0/1 in\nsample",
-		clip_on=False, color="#404040", fontsize=8, zorder=4,
-		horizontalalignment="center", verticalalignment="center")
-	hist_right.text((ncpg + total_ill[-1]) / 2, nrows + 0.75, "no 0/1 in\nsample",
-		clip_on=False, color="#ff9d4d", fontsize=8, zorder=4,
-		horizontalalignment="center", verticalalignment="center")
+	# add connections
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[0] + 0.02, -0.08), coordsA=axes.transData,
+		xyB=(pos[-1] - 0.02, -0.08), coordsB=axes.transData,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[0] + 0.02, density[0] + 0.08), coordsA=axes.transData,
+		xyB=(pos[-1] - 0.02, density[-1] + 0.08), coordsB=axes.transData,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[-1] + 0.02, -0.08), coordsA=axes.transData,
+		xyB=(-0.04, -0.04), coordsB=connect_axes.transAxes,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+	p = matplotlib.patches.ConnectionPatch(
+		xyA=(pos[-1] + 0.02, density[-1] + 0.08), coordsA=axes.transData,
+		xyB=(-0.04, 1.04), coordsB=connect_axes.transAxes,
+		edgecolor="#ff000080", facecolor="none",
+	)
+	axes.add_artist(p)
+
 	# misc
-	for k, sp in hist_right.spines.items():
-		sp.set_visible(k in ["top", "bottom"])
-	hist_right.tick_params(
+	axes.tick_params(
 		left=False, labelleft=False,
-		right=False, labelright=False,
-		bottom=True, labelbottom=True,
-		top=False, labeltop=False,
 	)
-	hist_right.set_xlabel("CpG counts")
-	hist_right.xaxis.set_major_formatter(suffix_formatter)
+	axes.grid(axis="x", color="#e0e0e0")
+	axes.set_xlabel("Beta")
+	axes.set_ylabel("P.D.")
+	title = dataset_cfg.display_name
+	if dataset_cfg.technology not in title:
+		title += f" [{dataset_cfg.technology}]"
+	axes.set_title(title)
 
-	# add 0-pattern annotation
-	if pat_0_idx is not None:
-		xytext = (
-			0.25,
-			hist_right.transAxes.inverted().transform(
-				hist_top.transAxes.transform((0, 1.2))
-			)[1]
+	return
+
+
+def _plot_ill_cpg_stat_ill_dist(axes: matplotlib.axes.Axes, data: dict[str], *,
+	depth_cate_cfgs: list[DepthCateCfg],
+	add_legend: bool = False,
+):
+	cmap = matplotlib.colormaps["viridis"]
+
+	# count depth in each category
+	depth_count = data["ill_depth_count"]
+	depth_total = sum(depth_count.values())
+
+	cate_depth = [cfg.count_from(depth_count) for cfg in depth_cate_cfgs]
+	cate_total = sum(cate_depth)
+
+	# plot for each names depth
+	cur_theta = -(cate_total / depth_total * 180)
+	handles = list()
+	for i, d in enumerate(cate_depth):
+		cfg = depth_cate_cfgs[i]
+		_theta = d / depth_total * 360
+		facecolor = "#d0d0d0" if (i == 0) else cmap(i / (len(depth_cate_cfgs) - 1))
+		# pyplot
+		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
+			clip_on=False, label=cfg.display_name, zorder=5, linewidth=0.5,
+			edgecolor="#ffffff", facecolor=facecolor,
 		)
-		hist_right.text(*xytext, "no 0/1 in all samples", color="#ff9d4d",
-			fontsize=10, transform=hist_right.transAxes,
-			horizontalalignment="center", verticalalignment="center",
+		axes.add_patch(p)
+		cur_theta += _theta
+		handles.append(p)
+
+	# add other if necessary
+	if cate_total < depth_total:
+		_theta = (depth_total - cate_total) / depth_total * 360
+		label = f"> {depth_cate_cfgs[-1].dmax}"
+		p = matplotlib.patches.Wedge((0, 0), 1, cur_theta, cur_theta + _theta,
+			clip_on=False, label=label, zorder=5, linewidth=0.5,
+			edgecolor="#000000", facecolor="#ffffff",
 		)
-		arrowprops = dict(
-			arrowstyle="->", color="#ff9d4d", lw=1.0, shrinkA=55, shrinkB=2,
-			connectionstyle="angle,angleA=0,angleB=90,rad=5",
-		)
-		hist_right.annotate("",
-			(ncpg - 0.25 * pat_count[0], nrows), xycoords=hist_right.transData,
-			xytext=xytext, textcoords=hist_right.transAxes,
-			arrowprops=arrowprops,
-		)
-		hist_right.annotate("",
-			(pat_0_idx + 0.5, pat_count[0]), xycoords=hist_top.transData,
-			xytext=xytext, textcoords=hist_right.transAxes,
-			arrowprops=arrowprops,
-		)
+		axes.add_patch(p)
+		handles.append(p)
+
+	# add center circle and text
+	p = matplotlib.patches.Circle((0, 0), 0.5, clip_on=False, edgecolor="none",
+		facecolor="#ffffff", zorder=10)
+	axes.add_patch(p)
+	axes.text(0, 0,
+		f"{data["ill_frac"] * 100:.1f}%",
+		fontweight="bold", zorder=11,
+		horizontalalignment="center", verticalalignment="center",
+	)
+
+	# add a 3-side box to complete the connection
+	line = matplotlib.lines.Line2D([-0.04, 1.04, 1.04, -0.04],
+		[-0.04, -0.04, 1.04, 1.04], clip_on=False, transform=axes.transAxes,
+		linestyle="-", linewidth=1.0, color="#ff000080"
+	)
+	axes.add_artist(line)
 
 	# legend
-	handles = list()
-	handles.extend(hist_top.plot([], [], marker="o", linewidth=0, markersize=8,
-		color="none", markerfacecolor="#404040", markeredgecolor="none",
-		label="has 0/1 in sample"))
-	handles.extend(hist_top.plot([], [], marker="o", linewidth=0, markersize=8,
-		color="none", markerfacecolor="#ffffff", markeredgecolor="#c0c0c0",
-		label="no 0/1 in sample"))
-	hist_top.legend(handles=handles, loc=7, bbox_to_anchor=(0.98, 0.50),
-		frameon=False, handlelength=0.75, title=legend_title, title_fontsize=14)
+	if add_legend:
+		axes.legend(handles=handles, loc=1, bbox_to_anchor=[1.02, -0.36],
+			frameon=True, handlelength=0.75, ncol=3,  # title="Depth",
+			fontsize=10, title="Depth ranges", title_fontsize=12,
+		)
+
+	# misc
+	for sp in axes.spines.values():
+		sp.set_visible(False)
+	axes.tick_params(
+		left=False, labelleft=False,
+		right=False, labelright=False,
+		bottom=False, labelbottom=False,
+		top=False, labeltop=False,
+	)
+	axes.set_xlabel("Depths of\n0&1 betas")
+	axes.set_xlim(-1, 1)
+	axes.set_ylim(-1, 1)
 	return
 
 
-def plot_main(
-	dataset_name: str,
-
+def _plot_ill_cpg_stat(*,
+	panel_dist_axes: matplotlib.axes.Axes,
+	ill_dist_axes: matplotlib.axes.Axes,
+	data: dict[str],
+	dataset_cfg: pylib.DatasetCfg,
+	depth_cate_cfgs: list[DepthCateCfg],
+	add_ill_dist_legend: bool = False,
 ):
-	dataset_cfgs = pylib.DatasetCfgLib.from_json()
-	dataset = pylib.dataset.BetaDepth.load_dataset(dataset_name,
-		with_metadata=True, with_repl_group=True)
-	beta = dataset.beta
-	repl_to_subj = dataset.repl_group.repl_to_subj
-
-	# find ill cpgs
-	ill_cpg = ((beta == 0) | (beta == 1)).T
-	ill_cpg.index = [repl_to_subj[v] for v in ill_cpg.index]
-	# group by index
-	ill_cpg = ill_cpg.groupby(ill_cpg.index).any().astype(int)
-	# sort rows by row sum
-	ill_cpg = ill_cpg.loc[ill_cpg.sum(axis=1).sort_values(ascending=True).index]
-
-	nrows = len(ill_cpg)
-	ncols = min(20, len(ill_cpg.columns))
-
-	layout = setup_layout(nrows, ncols, dpi=600)
-	figure = layout["figure"]
-
-	plot_ill_cpg_stat(
-		layout["grid"],
-		layout["hist_top"],
-		layout["hist_right"],
-		ill_cpg,
-		ncols=ncols,
-		legend_title=dataset_cfgs[os.path.basename(os.getcwd())].display_name,
+	# plot beta value distribution of full panel
+	_plot_ill_cpg_stat_panel_dist(panel_dist_axes, data,
+		dataset_cfg=dataset_cfg,
+		connect_axes=ill_dist_axes,
 	)
 
-	figure.savefig(f"fig_s11_{dataset_name}.svg", dpi=600)
-	matplotlib.pyplot.close(figure)
+	# plot depth distribution of ill cpgs
+	_plot_ill_cpg_stat_ill_dist(ill_dist_axes, data,
+		depth_cate_cfgs=depth_cate_cfgs,
+		add_legend=add_ill_dist_legend,
+	)
+
 	return
 
 
-def main():
-	datasets = ["RB_GALAXY", "RB_TWIST", "RB_GDNA_GALAXY", "RB_GDNA_TWIST"]
-	for ds in datasets:
-		plot_main(ds)
+def _plot_ill_cpg_survey(layout: dict, datasets: list[str], clocks: list[str],
+	dataset_cfgs: pylib.DatasetCfgLib,
+	depth_cate_cfgs: list[DepthCateCfg],
+):
+	n_datasets = len(datasets)
+	ncols = layout["ncols"]
+
+	# load ill cpg surv data
+	data = load_ill_cpg_surv_data("ill_cpg_stat.json")
+
+	# plot
+	if n_datasets > ncols:
+		legend_idx = (n_datasets // ncols) * ncols - 1
+	else:
+		legend_idx = n_datasets - 1
+	for i, ds in enumerate(datasets):
+		_plot_ill_cpg_stat(
+			panel_dist_axes=layout[f"{ds}_panel_dist"],
+			ill_dist_axes=layout[f"{ds}_ill_dist"],
+			data=data[ds],
+			dataset_cfg=dataset_cfgs[ds],
+			depth_cate_cfgs=depth_cate_cfgs,
+			add_ill_dist_legend=(i == legend_idx),
+		)
+
+	return
+
+
+def _main():
+	# configs
+	datasets = ["RB_GDNA_GALAXY", "RB_GDNA_TWIST", "RB_GALAXY", "RB_TWIST",
+		"RB_SYF", "GSE144691", "GSE86832", "BUCCAL_TWIST"]
+	depth_cate_cfgs = [
+		DepthCateCfg(dmin=0, dmax=0),
+		DepthCateCfg(dmin=1, dmax=2),
+		DepthCateCfg(dmin=3, dmax=5),
+		DepthCateCfg(dmin=6, dmax=10),
+		DepthCateCfg(dmin=11, dmax=20),
+		DepthCateCfg(dmin=21, dmax=None),
+	]
+
+	# load data
+	dataset_cfgs = pylib.DatasetCfgLib.from_json()
+	clocks = pylib.clock.load_clocks()
+
+	# plot
+	layout = setup_layout(datasets)
+	figure = layout["figure"]
+
+	_plot_ill_cpg_survey(layout, datasets=datasets,
+		clocks=clocks,
+		dataset_cfgs=dataset_cfgs,
+		depth_cate_cfgs=depth_cate_cfgs,
+	)
+
+	figure.savefig("fig_s11.svg", dpi=600)
+	figure.savefig("fig_s11.png", dpi=600)
+	figure.savefig("fig_s11.pdf", dpi=600)
+	matplotlib.pyplot.close(figure)
+
 	return
 
 
 if __name__ == "__main__":
-	main()
+	with threadpoolctl.threadpool_limits(limits=24, user_api="blas"):
+		_main()

@@ -85,3 +85,9 @@ class AgePredRes(object):
 			ret = self._calc_stat_along_column(repl_group, data_columns,
 				by_subject=by_subject)
 		return ret
+
+	def calc_delta_age(self, data_columns: Sequence[str]) -> pandas.DataFrame:
+		true_age = self.data["age"]
+		pred_age = self.data.reindex(columns=data_columns).copy()
+		delta_age = pred_age - true_age[:, numpy.newaxis]
+		return delta_age

@@ -22,7 +22,7 @@ def load_clock_features(fname: str = None, *,
 	cache_prefix: str = util.DEFAULT_CACHE_PREFIX
 ) -> dict[str, list[str]]:
 	if fname is None:
-		fname = util.try_load_cache("../etc/pyaging_clock_cpgs.json",
+		fname = util.try_load_cache("pyaging_data/.all_clock.cpg-dump.json",
 			cache_prefix=cache_prefix)
 	logger.info(f"loading clock features from '{fname}'")
 	with open(fname, "r") as fp:
